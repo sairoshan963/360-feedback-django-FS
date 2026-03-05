@@ -373,12 +373,37 @@ VITE_GOOGLE_CLIENT_ID=<id> docker compose up -d --build
 # From project root
 make migrate          # Run migrations
 make seed             # Seed users and departments
+make seed-gamyam      # Seed from Gamyam People.md (company export)
 make seed-cycle       # Create a demo cycle
 make seed-demo        # Create 4 demo cycles in various states
 make test             # Run all tests
 make shell            # Django shell
 make superuser        # Create superuser interactively
 ```
+
+### Seeding from Gamyam People export
+
+To seed users and org hierarchy from a Gamyam People export (JSON in `.md`):
+
+```bash
+# Local (file at project root)
+make seed-gamyam
+
+# Or with explicit file path
+FILE=/path/to/Gamyam\ People.md make seed-gamyam
+
+# Dry run (no DB changes)
+cd backend && python manage.py seed_gamyam_people --dry-run
+```
+
+**On server (Docker):** Copy `Gamyam People.md` to the server, then either mount it and run, or copy into the backend container and run:
+
+```bash
+# After copying file to /opt/360-django/Gamyam People.md on the server
+docker compose exec backend python manage.py seed_gamyam_people --file "/app/Gamyam People.md"
+```
+
+(Mount the file into the container if needed, e.g. add a volume in `docker-compose.yml` for the backend service.)
 
 ### Run Tests
 

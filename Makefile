@@ -62,6 +62,10 @@ superadmin:
 seed:
 	$(BACKEND) python manage.py seed_users
 
+.PHONY: seed-gamyam
+seed-gamyam:
+	$(BACKEND) python manage.py seed_gamyam_people $(if $(FILE),--file $(FILE),)
+
 .PHONY: seed-cycle
 seed-cycle:
 	$(BACKEND) python manage.py seed_cycle
