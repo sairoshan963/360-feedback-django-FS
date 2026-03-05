@@ -17,6 +17,8 @@ const { Title } = Typography;
 
 const ROLE_TAG_COLOR  = { SUPER_ADMIN: 'red', HR_ADMIN: 'blue', MANAGER: 'green', EMPLOYEE: 'default' };
 const ROLE_AVATAR_BG  = { SUPER_ADMIN: '#ff4d4f', HR_ADMIN: '#1677ff', MANAGER: '#52c41a', EMPLOYEE: '#8c8c8c' };
+const ROLE_CARD_BORDER = { SUPER_ADMIN: '#ff4d4f', HR_ADMIN: '#1677ff', MANAGER: '#52c41a', EMPLOYEE: '#8c8c8c' };
+const ROLE_CARD_BG     = { SUPER_ADMIN: '#fff1f0', HR_ADMIN: '#e6f4ff', MANAGER: '#f6ffed', EMPLOYEE: '#fafafa' };
 
 const NODE_W = 230;
 const NODE_H = 96;
@@ -37,7 +39,7 @@ function applyDagreLayout(nodes, edges) {
 function OrgNode({ data }) {
   const initials = `${data.first_name?.[0] ?? ''}${data.last_name?.[0] ?? ''}`.toUpperCase();
   return (
-    <div style={{ width: NODE_W, background: '#fff', borderRadius: 10, border: '1px solid #e8e8e8', boxShadow: '0 2px 10px rgba(0,0,0,.08)', padding: '10px 14px' }}>
+    <div style={{ width: NODE_W, background: ROLE_CARD_BG[data.role], borderRadius: 10, border: `1px solid ${ROLE_CARD_BORDER[data.role]}`, borderLeft: `4px solid ${ROLE_CARD_BORDER[data.role]}`, boxShadow: '0 2px 10px rgba(0,0,0,.08)', padding: '10px 14px' }}>
       <Handle type="target" position={Position.Top}    style={{ background: '#d9d9d9', width: 8, height: 8 }} />
       <Handle type="source" position={Position.Bottom} style={{ background: '#d9d9d9', width: 8, height: 8 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -213,7 +215,7 @@ export default function OrgPage() {
                   </ReactFlow>
                 </div>
                 <div style={{ padding: '10px 16px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {Object.entries(ROLE_TAG_COLOR).map(([role, color]) => (
+                  {Object.keys(ROLE_TAG_COLOR).map((role) => (
                     <Space key={role} size={4}>
                       <Avatar size={14} style={{ background: ROLE_AVATAR_BG[role] }} />
                       <span style={{ fontSize: 12, color: '#555' }}>{role.replace('_', ' ')}</span>
