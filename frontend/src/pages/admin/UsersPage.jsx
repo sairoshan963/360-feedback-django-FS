@@ -3,7 +3,7 @@ import {
   Table, Button, Tag, Space, Modal, Form, Input, Select, AutoComplete,
   Typography, Card, message, Popconfirm,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { listUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -102,21 +102,20 @@ export default function UsersPage() {
 
   return (
     <Card>
-      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }} wrap>
-        <Space wrap>
-          <Title level={4} style={{ margin: 0 }}>Users</Title>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+        <Title level={4} style={{ margin: 0 }}>Users</Title>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Input.Search
             placeholder="Search by name or email"
             allowClear
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onSearch={(v) => setAppliedSearch(v ?? '')}
-            style={{ width: 260 }}
-            enterButton={<><SearchOutlined /> Search</>}
+            style={{ width: 300, maxWidth: '100%' }}
           />
-        </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add User</Button>
-      </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add User</Button>
+        </div>
+      </div>
 
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: true }} />
 
