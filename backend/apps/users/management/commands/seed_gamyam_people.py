@@ -7,7 +7,8 @@ Reads a JSON array where each object has:
   - basic_employment.current_transition.basic_department.name → department
   - basic_employment.reporting_to_id → manager (UUID; resolved via id→email map)
 
-All users are created with role=EMPLOYEE; status=ACTIVE. Existing emails are skipped.
+All users are created with role=EMPLOYEE; status=ACTIVE; password=Admin@123 (change after first login).
+Existing emails are skipped.
 Org hierarchy is created only when the manager (reporting_to_id) is also present in
 the same file; if the export is a subset, unresolved manager links are skipped.
 
@@ -143,7 +144,7 @@ class Command(BaseCommand):
                     status='ACTIVE',
                     department=department,
                 )
-                user.set_unusable_password()
+                user.set_password('Admin@123')
                 user.save()
                 created_users += 1
             self.stdout.write(f'  Created: {created_users}, Skipped (existing): {skipped_users}')

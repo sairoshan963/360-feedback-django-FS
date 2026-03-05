@@ -83,14 +83,14 @@ export default function ProfilePage() {
         first_name: values.first_name.trim(),
         middle_name: values.middle_name?.trim() || null,
         last_name: values.last_name.trim(),
-        job_title: values.job_title?.trim() || null,
+        // job_title not sent — read-only in profile (managed by admin)
       });
       const updated = res.data?.user || values;
       updateUser({
         first_name: updated.first_name,
         middle_name: updated.middle_name,
         last_name: updated.last_name,
-        job_title: updated.job_title,
+        job_title: user?.job_title,
       });
       message.success('Profile updated successfully');
     } catch (err) {
@@ -169,7 +169,7 @@ export default function ProfilePage() {
                   <Col span={8}><Form.Item name="middle_name" label="Middle Name"><Input placeholder="Middle name (optional)" /></Form.Item></Col>
                   <Col span={8}><Form.Item name="last_name"  label="Last Name"  rules={[{ required: true, message: 'Required' }]}><Input placeholder="Last name" /></Form.Item></Col>
                 </Row>
-                <Form.Item name="job_title" label="Job Title"><Input placeholder="e.g. Senior Engineer, Product Manager" /></Form.Item>
+                <Form.Item name="job_title" label="Job Title"><Input placeholder="e.g. Senior Engineer, Product Manager" disabled /></Form.Item>
                 <Row gutter={16}>
                   <Col span={12}><Form.Item label="Email"><Input value={user?.email} disabled prefix={<MailOutlined />} /></Form.Item></Col>
                   <Col span={12}><Form.Item label="Role"><Input value={ROLE_LABEL[user?.role]} disabled prefix={<IdcardOutlined />} /></Form.Item></Col>
