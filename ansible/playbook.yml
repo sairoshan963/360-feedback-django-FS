@@ -1,0 +1,98 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# 360 Feedback Django — Deploy Playbook
+#
+# Usage (from project root):
+#   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+#
+# What it does:
+#   1. Pulls latest code from GitHub
+#   2. Rebuilds and restarts Docker containers
+#   3. Verifies all containers are healthy
+# ─────────────────────────────────────────────────────────────────────────────
+
+- name: Deploy 360 Feedback Django
+  hosts: django_servers
+  vars:
+    app_path: /opt/360-django
+    repo_url: https://github.com/sairoshan963/360-feedback-django-FS.git
+    google_client_id: "581506113726-h32th7jgkc9s6b1l2e5t8mb39vd0o4cn.apps.googleusercontent.com"
+
+  tasks:
+
+    - name: Check app directory exists
+      stat:
+        path: "{{ app_path }}"
+      register: app_dir
+
+    - name: Clone repo if not present
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_path }}"
+        version: main
+        force: no
+      when: not app_dir.stat.exists
+
+    - name: Pull latest code from GitHub
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_path }}"
+        version: main
+        force: yes
+      when: app_dir.stat.exists
+
+    - name: Verify .env.docker exists (must be on server manually)
+      stat:
+        path: "{{ app_path }}/backend/.env.docker"
+      register: env_file
+      failed_when: not env_file.stat.exists
+      ignore_errors: no
+
+    - name: Build and restart containers
+      shell: |
+        cd {{ app_path }}
+        VITE_GOOGLE_CLIENT_ID={{ google_client_id }} docker compose up -d --build
+      register: compose_output
+
+    - name: Show compose output
+      debug:
+        var: compose_output.stdout_lines
+
+    - name: Wait for backend to be healthy
+      shell: docker inspect --format='{{ "{{.State.Health.Status}}" }}' 360-django-db-1
+      register: db_health
+      until: db_health.stdout == "healthy"
+      retries: 10
+      delay: 5
+
+    - name: Show running containers
+      shell: docker ps --format "table {{ '{{.Names}}' }}\t{{ '{{.Status}}' }}\t{{ '{{.Ports}}' }}" | grep 360-django
+      register: containers
+
+    - name: Print container status
+      debug:
+        var: containers.stdout_lines
+
+    - name: Verify frontend is responding
+      uri:
+        url: "http://localhost:5173/"
+        status_code: 200
+      register: frontend_check
+
+    - name: Verify backend API is responding
+      uri:
+        url: "http://localhost:8000/api/v1/auth/login/"
+        method: POST
+        body_format: json
+        body:
+          email: "admin@gamyam.com"
+          password: "Admin@123"
+        status_code: 200
+      register: backend_check
+
+    - name: Deploy complete
+      debug:
+        msg:
+          - "✅ Deploy successful!"
+          - "Frontend: http://164.52.215.113:5173/"
+          - "Backend:  http://164.52.215.113:8000/"

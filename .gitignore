@@ -1,0 +1,38 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/.pytest_cache/
+backend/staticfiles/
+backend/media/
+backend/db.sqlite3
+backend/*.log
+
+# ─── Secrets — NEVER commit these ─────────────────────────────────────────────
+backend/.env
+backend/.env.docker
+backend/.env.local
+
+# .env.example is safe to commit (no real secrets)
+!backend/.env.example
+
+# ─── Frontend ─────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# frontend/.env is safe (only VITE_USE_MOCK and public Google client ID)
+
+# ─── OS / Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+*.log

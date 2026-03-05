@@ -1,0 +1,209 @@
+"""
+Management command: seed_users
+Seeds demo users, departments, org hierarchy, and the Standard 360° Review template.
+Common password for all seeded users: Admin@123
+Usage: python manage.py seed_users
+"""
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+SEED_PASSWORD = 'Admin@123'
+
+USERS = [
+    {'email': 'admin@gamyam.com',        'first_name': 'Super',    'last_name': 'Admin',    'role': 'SUPER_ADMIN', 'job_title': 'Chief Executive Officer', 'department': None},
+    {'email': 'roshan.neelam@gamyam.co', 'first_name': 'Roshan',   'last_name': 'Neelam',   'role': 'SUPER_ADMIN', 'job_title': 'Developer',                'department': None},
+    {'email': 'hr@gamyam.com',           'first_name': 'Sarah',    'last_name': 'Johnson',  'role': 'HR_ADMIN',    'job_title': 'HR Manager',               'department': 'HR'},
+    {'email': 'manager1@gamyam.com',     'first_name': 'John',     'last_name': 'Smith',    'role': 'MANAGER',     'job_title': 'Engineering Manager',      'department': 'Engineering'},
+    {'email': 'manager2@gamyam.com',     'first_name': 'Emily',    'last_name': 'Davis',    'role': 'MANAGER',     'job_title': 'Product Manager',          'department': 'Product'},
+    {'email': 'emp1@gamyam.com',         'first_name': 'Michael',  'last_name': 'Brown',    'role': 'EMPLOYEE',    'job_title': 'Senior Software Engineer', 'department': 'Engineering'},
+    {'email': 'emp2@gamyam.com',         'first_name': 'Jessica',  'last_name': 'Wilson',   'role': 'EMPLOYEE',    'job_title': 'Software Engineer',        'department': 'Engineering'},
+    {'email': 'emp3@gamyam.com',         'first_name': 'David',    'last_name': 'Martinez', 'role': 'EMPLOYEE',    'job_title': 'Frontend Developer',       'department': 'Engineering'},
+    {'email': 'emp4@gamyam.com',         'first_name': 'Lisa',     'last_name': 'Anderson', 'role': 'EMPLOYEE',    'job_title': 'Backend Developer',        'department': 'Product'},
+    {'email': 'emp5@gamyam.com',         'first_name': 'Robert',   'last_name': 'Taylor',   'role': 'EMPLOYEE',    'job_title': 'QA Engineer',              'department': 'QA'},
+    {'email': 'emp6@gamyam.com',         'first_name': 'Jennifer', 'last_name': 'Thomas',   'role': 'EMPLOYEE',    'job_title': 'DevOps Engineer',          'department': 'DevOps'},
+]
+
+# (employee_email, manager_email or None)
+ORG_HIERARCHY = [
+    ('hr@gamyam.com',       None),
+    ('manager1@gamyam.com', None),
+    ('manager2@gamyam.com', None),
+    ('emp1@gamyam.com',     'manager1@gamyam.com'),
+    ('emp2@gamyam.com',     'manager1@gamyam.com'),
+    ('emp3@gamyam.com',     'manager1@gamyam.com'),
+    ('emp4@gamyam.com',     'manager2@gamyam.com'),
+    ('emp5@gamyam.com',     'manager2@gamyam.com'),
+    ('emp6@gamyam.com',     'manager1@gamyam.com'),
+]
+
+TEMPLATE = {
+    'name': 'Standard 360° Review',
+    'description': 'Comprehensive performance review template',
+    'sections': [
+        {
+            'title': 'Technical Skills',
+            'questions': [
+                {'text': 'How would you rate the technical expertise?',   'type': 'RATING'},
+                {'text': 'What technical strengths have you observed?',   'type': 'TEXT'},
+            ],
+        },
+        {
+            'title': 'Communication',
+            'questions': [
+                {'text': 'How effective is the communication?',           'type': 'RATING'},
+                {'text': 'Provide examples of good communication.',       'type': 'TEXT'},
+            ],
+        },
+        {
+            'title': 'Teamwork',
+            'questions': [
+                {'text': 'How well does this person collaborate?',        'type': 'RATING'},
+                {'text': 'Describe their contribution to team success.',  'type': 'TEXT'},
+            ],
+        },
+        {
+            'title': 'Overall Feedback',
+            'questions': [
+                {'text': 'What are the key strengths?',                  'type': 'TEXT'},
+                {'text': 'What areas need improvement?',                  'type': 'TEXT'},
+            ],
+        },
+    ],
+}
+
+
+class Command(BaseCommand):
+    help = 'Seed demo users, departments, org hierarchy, and the Standard 360° Review template'
+
+    def handle(self, *args, **options):
+        with transaction.atomic():
+            self._seed_departments()
+            self._seed_users()
+            self._seed_org_hierarchy()
+            self._seed_template()
+
+        self.stdout.write(self.style.SUCCESS('\n✅  Seed completed! Password for all: ' + SEED_PASSWORD))
+
+    # ── Departments ───────────────────────────────────────────────────────────
+
+    def _seed_departments(self):
+        from apps.users.models import Department
+
+        dept_names = {u['department'] for u in USERS if u['department']}
+        self.stdout.write('Seeding departments...')
+        for name in sorted(dept_names):
+            dept, created = Department.objects.get_or_create(name=name)
+            mark = '✓ created' if created else '✓ exists '
+            self.stdout.write(f'  {mark}: {name}')
+
+    # ── Users ─────────────────────────────────────────────────────────────────
+
+    def _seed_users(self):
+        from apps.users.models import Department
+
+        self.stdout.write('\nSeeding users...')
+        for u in USERS:
+            dept = Department.objects.get(name=u['department']) if u['department'] else None
+
+            user, created = User.objects.get_or_create(
+                email=u['email'],
+                defaults={
+                    'first_name': u['first_name'],
+                    'last_name':  u['last_name'],
+                    'role':       u['role'],
+                    'status':     'ACTIVE',
+                    'job_title':  u['job_title'],
+                    'department': dept,
+                    'is_staff':   u['role'] == 'SUPER_ADMIN',
+                    'is_superuser': u['role'] == 'SUPER_ADMIN',
+                },
+            )
+
+            # Always refresh password and profile fields on re-run
+            user.set_password(SEED_PASSWORD)
+            user.first_name  = u['first_name']
+            user.last_name   = u['last_name']
+            user.role        = u['role']
+            user.status      = 'ACTIVE'
+            user.job_title   = u['job_title']
+            user.department  = dept
+            user.is_staff    = u['role'] == 'SUPER_ADMIN'
+            user.is_superuser = u['role'] == 'SUPER_ADMIN'
+            user.save()
+
+            mark = '✓ created' if created else '✓ updated'
+            self.stdout.write(f'  {mark}: {u["email"]} ({u["role"]})')
+
+    # ── Org Hierarchy ─────────────────────────────────────────────────────────
+
+    def _seed_org_hierarchy(self):
+        from apps.users.models import OrgHierarchy
+
+        self.stdout.write('\nSeeding org hierarchy...')
+        for emp_email, mgr_email in ORG_HIERARCHY:
+            try:
+                employee = User.objects.get(email=emp_email)
+            except User.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f'  ⚠ Skipped (user not found): {emp_email}'))
+                continue
+
+            if mgr_email is None:
+                # No manager — remove any existing hierarchy entry
+                OrgHierarchy.objects.filter(employee=employee).delete()
+                self.stdout.write(f'  ✓ {emp_email} → (no manager)')
+                continue
+
+            try:
+                manager = User.objects.get(email=mgr_email)
+            except User.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f'  ⚠ Manager not found for {emp_email}: {mgr_email}'))
+                continue
+
+            OrgHierarchy.objects.update_or_create(
+                employee=employee,
+                defaults={'manager': manager},
+            )
+            self.stdout.write(f'  ✓ {emp_email} → {mgr_email}')
+
+    # ── Template ──────────────────────────────────────────────────────────────
+
+    def _seed_template(self):
+        from apps.review_cycles.models import Template, TemplateSection, TemplateQuestion
+
+        self.stdout.write('\nSeeding template...')
+        hr_user = User.objects.filter(email='hr@gamyam.com').first()
+
+        template, created = Template.objects.get_or_create(
+            name=TEMPLATE['name'],
+            defaults={
+                'description': TEMPLATE['description'],
+                'created_by':  hr_user,
+            },
+        )
+
+        if not created:
+            self.stdout.write(f'  ✓ Template already exists: {template.name} (ID: {template.id})')
+            return
+
+        self.stdout.write(f'  ✓ Template created: {template.name} (ID: {template.id})')
+
+        for i, section_data in enumerate(TEMPLATE['sections'], start=1):
+            section = TemplateSection.objects.create(
+                template=template,
+                title=section_data['title'],
+                display_order=i,
+            )
+            for j, q in enumerate(section_data['questions'], start=1):
+                TemplateQuestion.objects.create(
+                    section=section,
+                    question_text=q['text'],
+                    type=q['type'],
+                    rating_scale_min=1 if q['type'] == 'RATING' else None,
+                    rating_scale_max=5 if q['type'] == 'RATING' else None,
+                    display_order=j,
+                )
+
+        self.stdout.write('  ✓ Sections and questions created')

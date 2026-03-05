@@ -1,0 +1,117 @@
+services:
+
+  # ─── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-gamyam_360_django}
+      POSTGRES_USER:     ${DB_USER:-gamyam_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gamyam_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"       # 5433 on host to avoid clash with existing Postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gamyam_user} -d ${DB_NAME:-gamyam_360_django}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6380:6379"       # 6380 on host to avoid clash with existing Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─── Django Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      target: production
+    restart: unless-stopped
+    env_file: ./backend/.env.docker
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST:   db
+      DB_PORT:   "5432"
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py init_superadmin && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile -"]
+
+  # ─── Celery Worker ───────────────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./backend
+      target: production
+    restart: unless-stopped
+    env_file: ./backend/.env.docker
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST:   db
+      DB_PORT:   "5432"
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: celery -A config worker --loglevel=info --concurrency=2
+
+  # ─── Celery Beat (Scheduler) ─────────────────────────────────────────────────
+  celery_beat:
+    build:
+      context: ./backend
+      target: production
+    restart: unless-stopped
+    env_file: ./backend/.env.docker
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST:   db
+      DB_PORT:   "5432"
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: >
+      celery -A config beat --loglevel=info
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  # ─── React Frontend ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_USE_MOCK: "false"
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  media_files:
