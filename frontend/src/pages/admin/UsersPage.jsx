@@ -69,7 +69,7 @@ export default function UsersPage() {
   };
 
   const managerOptions  = users.filter((u) => u.id !== modal.user?.id);
-  const existingDepts   = [...new Set(users.map((u) => u.department).filter(Boolean))].sort();
+  const deptOptions     = [...new Map(users.filter((u) => u.department).map((u) => [u.department, u.department_name])).entries()].map(([id, name]) => ({ value: id, label: name || id }));
 
   const columns = [
     { title: 'Name',      render: (_, r) => [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') },
@@ -86,7 +86,7 @@ export default function UsersPage() {
       title: 'Reports To',
       render: (_, r) => { const mgr = users.find((u) => u.id === r.manager_id); return mgr ? [mgr.first_name, mgr.middle_name, mgr.last_name].filter(Boolean).join(' ') : '—'; },
     },
-    { title: 'Department', dataIndex: 'department', render: (v) => v || '—' },
+    { title: 'Department', dataIndex: 'department_name', render: (v) => v || '—' },
     {
       title: 'Actions',
       render: (_, r) => (
@@ -139,8 +139,8 @@ export default function UsersPage() {
               </Select>
             </Form.Item>
           )}
-          <Form.Item name="department" label="Department" extra="Pick an existing department or type a new one">
-            <AutoComplete options={existingDepts.map((d) => ({ value: d }))} filterOption={(i, o) => o.value.toLowerCase().includes(i.toLowerCase())} placeholder="e.g. Engineering, Product" allowClear />
+          <Form.Item name="department" label="Department" extra="Pick an existing department">
+            <Select allowClear placeholder="e.g. Engineering, Product" showSearch filterOption={(i, o) => (o?.label ?? '').toLowerCase().includes(i.toLowerCase())} options={deptOptions} />
           </Form.Item>
           <Form.Item name="manager_id" label="Reports To">
             <Select showSearch allowClear placeholder="Select reporting manager"
