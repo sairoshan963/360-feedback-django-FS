@@ -2,6 +2,8 @@
 
 A full-stack 360° performance feedback platform built with **Django REST Framework** (backend) and **React + Vite** (frontend), deployed via **Docker Compose**.
 
+**Live (HTTPS):** When Cloudflare quick tunnel is running on the server, the app is available at a URL like `https://meetings-colored-nurses-genuine.trycloudflare.com` — see [Cloudflare Tunnel (HTTPS)](#cloudflare-tunnel-https) for how to get the current URL.
+
 ---
 
 ## Table of Contents
@@ -9,6 +11,7 @@ A full-stack 360° performance feedback platform built with **Django REST Framew
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Ports & Access URLs](#ports--access-urls)
+- [Cloudflare Tunnel (HTTPS)](#cloudflare-tunnel-https)
 - [Local Development Setup](#local-development-setup)
 - [Server Deployment (First Time)](#server-deployment-first-time)
 - [Deploy Updates (After First Setup)](#deploy-updates-after-first-setup)
@@ -93,6 +96,43 @@ A full-stack 360° performance feedback platform built with **Django REST Framew
 | Frontend (Vite dev server) | `http://localhost:5173/` |
 | Backend (Django runserver) | `http://localhost:8000/` |
 | API Docs | `http://localhost:8000/api/docs/` |
+
+---
+
+## Cloudflare Tunnel (HTTPS)
+
+You can expose the app over **HTTPS** for free using [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) (no SSL certs or port forwarding needed).
+
+### Quick tunnel (no Cloudflare account)
+
+On the server, run:
+
+```bash
+# Frontend (what users open in the browser)
+cloudflared tunnel --url http://localhost:5173
+
+# Backend API (optional; frontend already proxies /api/ via Nginx)
+cloudflared tunnel --url http://localhost:8000
+```
+
+Each command prints a **temporary HTTPS URL** like:
+
+| Service | Example URL (changes on restart) |
+|---|---|
+| **Frontend** | `https://something-random.trycloudflare.com` |
+| **Backend** | `https://another-random.trycloudflare.com` |
+
+> **Note:** These `*.trycloudflare.com` URLs are **temporary** — they change every time the tunnel process restarts. Good for demos and testing. For a **permanent** HTTPS URL, use a [named tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/) with your own domain (e.g. `https://360.gamyam.co`).
+
+### Example live URLs (for reference)
+
+When the quick tunnel is running on the current server, you may see URLs similar to:
+
+- **App (HTTPS):** `https://meetings-colored-nurses-genuine.trycloudflare.com` *(example; replace with the URL printed when you run `cloudflared tunnel --url http://localhost:5173`)*
+- **API (HTTPS):** `https://olive-puzzles-flooring-presents.trycloudflare.com` *(example; optional)*
+
+If you use the frontend Cloudflare URL, add it to **Google OAuth → Authorized redirect URIs** in Google Cloud Console, e.g.  
+`https://<your-tunnel-hostname>.trycloudflare.com/auth/callback`
 
 ---
 
