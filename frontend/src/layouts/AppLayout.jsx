@@ -60,6 +60,12 @@ function navItems(role) {
     );
   }
 
+  if (['MANAGER', 'HR_ADMIN', 'EMPLOYEE'].includes(role)) {
+    all.push(
+      { key: '/admin/org', icon: <TeamOutlined />, label: 'Org Hierarchy' },
+    );
+  }
+
   return all;
 }
 

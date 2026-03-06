@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import useAuthStore from '../../store/authStore';
 import {
   Card, Typography, Space, Button, message, Alert, Upload,
   Input, Select, Tabs, Tag, Avatar, Table,
@@ -93,6 +94,8 @@ export default function OrgPage() {
   const [deptFilter, setDeptFilter] = useState(null);
   const [activeTab,  setActiveTab]  = useState('diagram');
   const [showImport, setShowImport] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = ['SUPER_ADMIN', 'HR_ADMIN'].includes(user?.role);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -189,6 +192,7 @@ export default function OrgPage() {
 
   const importCard = (
     <div style={{ marginBottom: 16 }}>
+      {isAdmin && (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: showImport ? 10 : 0 }}>
         <Button
           icon={<InfoCircleOutlined />}
@@ -199,7 +203,8 @@ export default function OrgPage() {
           Bulk Import
         </Button>
       </div>
-      {showImport && (
+      )}
+      {isAdmin && showImport && (
         <Card size="small" style={{ borderColor: '#1677ff' }}>
           <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
             <Space>

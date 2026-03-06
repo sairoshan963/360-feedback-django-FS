@@ -194,11 +194,48 @@ class DepartmentDetailView(APIView):
 # ─── Org Hierarchy ────────────────────────────────────────────────────────────
 
 class OrgHierarchyView(APIView):
-    """Returns all users as a flat list with manager_id for org tree rendering."""
-    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    """Returns org hierarchy filtered by the requesting user's role."""
+    permission_classes = [IsAuthenticated]
+
+    def _subtree_ids(self, root_id, all_users_by_manager):
+        """Recursively collect IDs of root and all descendants."""
+        ids = {root_id}
+        queue = [root_id]
+        while queue:
+            current = queue.pop()
+            for child_id in all_users_by_manager.get(current, []):
+                if child_id not in ids:
+                    ids.add(child_id)
+                    queue.append(child_id)
+        return ids
 
     def get(self, request):
-        users = User.objects.select_related('department', 'manager_relation__manager').filter(status='ACTIVE')
+        me = request.user
+        all_active = User.objects.select_related('department', 'manager_relation__manager').filter(status='ACTIVE')
+
+        if me.role in ('SUPER_ADMIN', 'HR_ADMIN'):
+            users = all_active
+
+        elif me.role == 'MANAGER':
+            # Build manager_id -> [child_ids] map
+            children_of = {}
+            for u in all_active:
+                try:
+                    mgr_id = u.manager_relation.manager_id
+                    children_of.setdefault(mgr_id, []).append(u.id)
+                except OrgHierarchy.DoesNotExist:
+                    pass
+            subtree = self._subtree_ids(me.id, children_of)
+            users = all_active.filter(id__in=subtree)
+
+        else:  # EMPLOYEE
+            ids = {me.id}
+            try:
+                ids.add(me.manager_relation.manager_id)
+            except OrgHierarchy.DoesNotExist:
+                pass
+            users = all_active.filter(id__in=ids)
+
         data = []
         for u in users:
             try:
@@ -212,11 +249,11 @@ class OrgHierarchyView(APIView):
                 'middle_name': u.middle_name,
                 'last_name':   u.last_name,
                 'job_title':   u.job_title,
-                'role':       u.role,
-                'status':     u.status,
-                'department': u.department.name if u.department else None,
-                'avatar_url': u.avatar_url,
-                'manager_id': manager_id,
+                'role':        u.role,
+                'status':      u.status,
+                'department':  u.department.name if u.department else None,
+                'avatar_url':  u.avatar_url,
+                'manager_id':  manager_id,
             })
         return Response({'success': True, 'hierarchy': data})
 
