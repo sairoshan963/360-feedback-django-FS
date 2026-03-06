@@ -264,7 +264,7 @@ export default function OrgPage() {
             children: (
               <div style={{ padding: '0 0 16px' }}>
                 {importCard}
-                <Table rowKey="id" columns={listColumns} loading={loading} pagination={{ pageSize: 20 }} size="middle"
+                <Table rowKey="id" columns={listColumns} loading={loading} pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'], showTotal: (total) => `${total} people` }} size="middle"
                   dataSource={org.filter((u) => {
                     if (deptFilter && u.department !== deptFilter) return false;
                     if (search) {
