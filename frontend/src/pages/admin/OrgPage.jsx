@@ -20,6 +20,18 @@ const ROLE_AVATAR_BG  = { SUPER_ADMIN: '#ff4d4f', HR_ADMIN: '#1677ff', MANAGER: 
 const ROLE_CARD_BORDER = { SUPER_ADMIN: '#ff4d4f', HR_ADMIN: '#1677ff', MANAGER: '#52c41a', EMPLOYEE: '#8c8c8c' };
 const ROLE_CARD_BG     = { SUPER_ADMIN: '#fff1f0', HR_ADMIN: '#e6f4ff', MANAGER: '#f6ffed', EMPLOYEE: '#fafafa' };
 
+const AVATAR_PALETTE = [
+  '#f5222d','#fa541c','#fa8c16','#faad14','#a0d911',
+  '#52c41a','#13c2c2','#1677ff','#2f54eb','#722ed1',
+  '#eb2f96','#f759ab','#36cfc9','#40a9ff','#9254de',
+  '#ff7a45','#ffc53d','#73d13d','#5cdbd3','#69b1ff',
+];
+function avatarColor(name = '') {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+
 const NODE_W = 230;
 const NODE_H = 96;
 
@@ -38,12 +50,13 @@ function applyDagreLayout(nodes, edges) {
 
 function OrgNode({ data }) {
   const initials = `${data.first_name?.[0] ?? ''}${data.last_name?.[0] ?? ''}`.toUpperCase();
+  const color = avatarColor(`${data.first_name}${data.last_name}`);
   return (
     <div style={{ width: NODE_W, background: ROLE_CARD_BG[data.role], borderRadius: 10, border: `1px solid ${ROLE_CARD_BORDER[data.role]}`, borderLeft: `4px solid ${ROLE_CARD_BORDER[data.role]}`, boxShadow: '0 2px 10px rgba(0,0,0,.08)', padding: '10px 14px' }}>
       <Handle type="target" position={Position.Top}    style={{ background: '#d9d9d9', width: 8, height: 8 }} />
       <Handle type="source" position={Position.Bottom} style={{ background: '#d9d9d9', width: 8, height: 8 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Avatar size={40} style={{ background: ROLE_AVATAR_BG[data.role], flexShrink: 0, fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
+        <Avatar size={40} style={{ background: color, flexShrink: 0, fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {[data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ')}
@@ -211,7 +224,7 @@ export default function OrgPage() {
                     nodesDraggable={false} defaultEdgeOptions={{ type: 'smoothstep' }} proOptions={{ hideAttribution: true }}>
                     <Background color="#f0f0f0" gap={16} />
                     <Controls />
-                    <MiniMap nodeColor={(n) => ROLE_AVATAR_BG[n.data?.role] ?? '#8c8c8c'} style={{ background: '#fafafa' }} />
+                    <MiniMap nodeColor={(n) => avatarColor(`${n.data?.first_name}${n.data?.last_name}`)} style={{ background: '#fafafa' }} />
                   </ReactFlow>
                 </div>
                 <div style={{ padding: '10px 16px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
