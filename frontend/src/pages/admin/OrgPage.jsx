@@ -3,7 +3,7 @@ import {
   Card, Typography, Space, Button, message, Alert, Upload,
   Input, Select, Tabs, Tag, Avatar, Table,
 } from 'antd';
-import { UploadOutlined, DownloadOutlined, ApartmentOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { UploadOutlined, DownloadOutlined, ApartmentOutlined, UnorderedListOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import usePageTitle from '../../hooks/usePageTitle';
 import {
   ReactFlow, Background, Controls, MiniMap,
@@ -92,6 +92,7 @@ export default function OrgPage() {
   const [search,     setSearch]     = useState('');
   const [deptFilter, setDeptFilter] = useState(null);
   const [activeTab,  setActiveTab]  = useState('diagram');
+  const [showImport, setShowImport] = useState(false);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -187,17 +188,31 @@ export default function OrgPage() {
   );
 
   const importCard = (
-    <Card size="small" style={{ marginBottom: 16 }}>
-      <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-        <Space>
-          <Button icon={<DownloadOutlined />} size="small" onClick={downloadTemplate}>Download CSV Template</Button>
-          <Upload beforeUpload={() => false} accept=".csv" showUploadList={false} onChange={({ file }) => handleImport({ file: file.originFileObj || file })}>
-            <Button type="primary" icon={<UploadOutlined />} size="small" loading={importing}>Import CSV</Button>
-          </Upload>
-        </Space>
-        <Alert message="CSV: email, first_name, middle_name (optional), last_name, role, department (optional)" type="info" showIcon style={{ padding: '2px 10px', fontSize: 12 }} />
-      </Space>
-    </Card>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: showImport ? 10 : 0 }}>
+        <Button
+          icon={<InfoCircleOutlined />}
+          size="small"
+          type={showImport ? 'primary' : 'default'}
+          onClick={() => setShowImport((v) => !v)}
+        >
+          Bulk Import
+        </Button>
+      </div>
+      {showImport && (
+        <Card size="small" style={{ borderColor: '#1677ff' }}>
+          <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+            <Space>
+              <Button icon={<DownloadOutlined />} size="small" onClick={downloadTemplate}>Download CSV Template</Button>
+              <Upload beforeUpload={() => false} accept=".csv" showUploadList={false} onChange={({ file }) => handleImport({ file: file.originFileObj || file })}>
+                <Button type="primary" icon={<UploadOutlined />} size="small" loading={importing}>Import CSV</Button>
+              </Upload>
+            </Space>
+            <Alert message="CSV: email, first_name, middle_name (optional), last_name, role, department (optional)" type="info" showIcon style={{ padding: '2px 10px', fontSize: 12 }} />
+          </Space>
+        </Card>
+      )}
+    </div>
   );
 
   return (
