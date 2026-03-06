@@ -163,7 +163,7 @@ export default function OrgPage() {
       title: 'Employee',
       render: (_, r) => (
         <Space>
-          <Avatar size={32} style={{ background: ROLE_AVATAR_BG[r.role], fontSize: 12, fontWeight: 700 }}>
+          <Avatar size={32} style={{ background: avatarColor(`${r.first_name}${r.last_name}`), fontSize: 12, fontWeight: 700 }}>
             {`${r.first_name?.[0] ?? ''}${r.last_name?.[0] ?? ''}`.toUpperCase()}
           </Avatar>
           <span style={{ fontWeight: 500 }}>{[r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ')}</span>
