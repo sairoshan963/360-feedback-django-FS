@@ -1,6 +1,7 @@
 """
 Management command: seed_users
-Seeds demo users, departments, org hierarchy, and the Standard 360° Review template.
+Seeds demo users, departments, org hierarchy, and one template:
+  - Simple 360° Review (short, easy questions for self/manager/peer)
 Common password for all seeded users: Admin@123
 Usage: python manage.py seed_users
 """
@@ -39,36 +40,19 @@ ORG_HIERARCHY = [
     ('emp6@gamyam.com',     'manager1@gamyam.com'),
 ]
 
-TEMPLATE = {
-    'name': 'Standard 360° Review',
-    'description': 'Comprehensive performance review template',
+# Single template: easy questions for self, manager, and peer
+TEMPLATE_SIMPLE = {
+    'name': 'Simple 360° Review',
+    'description': 'Short, easy questions for self, manager, and peer feedback.',
     'sections': [
         {
-            'title': 'Technical Skills',
+            'title': 'Feedback',
             'questions': [
-                {'text': 'How would you rate the technical expertise?',   'type': 'RATING'},
-                {'text': 'What technical strengths have you observed?',   'type': 'TEXT'},
-            ],
-        },
-        {
-            'title': 'Communication',
-            'questions': [
-                {'text': 'How effective is the communication?',           'type': 'RATING'},
-                {'text': 'Provide examples of good communication.',       'type': 'TEXT'},
-            ],
-        },
-        {
-            'title': 'Teamwork',
-            'questions': [
-                {'text': 'How well does this person collaborate?',        'type': 'RATING'},
-                {'text': 'Describe their contribution to team success.',  'type': 'TEXT'},
-            ],
-        },
-        {
-            'title': 'Overall Feedback',
-            'questions': [
-                {'text': 'What are the key strengths?',                  'type': 'TEXT'},
-                {'text': 'What areas need improvement?',                  'type': 'TEXT'},
+                {'text': "Is this person's work good?", 'type': 'RATING'},
+                {'text': 'Does this person communicate clearly and listen well?', 'type': 'RATING'},
+                {'text': 'Is this person good to work with?', 'type': 'RATING'},
+                {'text': 'What does this person do well? (one thing)', 'type': 'TEXT'},
+                {'text': 'What can this person do better? (one thing)', 'type': 'TEXT'},
             ],
         },
     ],
@@ -173,37 +157,38 @@ class Command(BaseCommand):
     def _seed_template(self):
         from apps.review_cycles.models import Template, TemplateSection, TemplateQuestion
 
-        self.stdout.write('\nSeeding template...')
+        self.stdout.write('\nSeeding templates...')
         hr_user = User.objects.filter(email='hr@gamyam.com').first()
 
-        template, created = Template.objects.get_or_create(
-            name=TEMPLATE['name'],
-            defaults={
-                'description': TEMPLATE['description'],
-                'created_by':  hr_user,
-            },
-        )
-
-        if not created:
-            self.stdout.write(f'  ✓ Template already exists: {template.name} (ID: {template.id})')
-            return
-
-        self.stdout.write(f'  ✓ Template created: {template.name} (ID: {template.id})')
-
-        for i, section_data in enumerate(TEMPLATE['sections'], start=1):
-            section = TemplateSection.objects.create(
-                template=template,
-                title=section_data['title'],
-                display_order=i,
+        for template_data in (TEMPLATE_SIMPLE,):  # only one template: Simple 360° Review
+            template, created = Template.objects.get_or_create(
+                name=template_data['name'],
+                defaults={
+                    'description': template_data['description'],
+                    'created_by':  hr_user,
+                },
             )
-            for j, q in enumerate(section_data['questions'], start=1):
-                TemplateQuestion.objects.create(
-                    section=section,
-                    question_text=q['text'],
-                    type=q['type'],
-                    rating_scale_min=1 if q['type'] == 'RATING' else None,
-                    rating_scale_max=5 if q['type'] == 'RATING' else None,
-                    display_order=j,
-                )
 
-        self.stdout.write('  ✓ Sections and questions created')
+            if not created:
+                self.stdout.write(f'  ✓ Template already exists: {template.name} (ID: {template.id})')
+                continue
+
+            self.stdout.write(f'  ✓ Template created: {template.name} (ID: {template.id})')
+
+            for i, section_data in enumerate(template_data['sections'], start=1):
+                section = TemplateSection.objects.create(
+                    template=template,
+                    title=section_data['title'],
+                    display_order=i,
+                )
+                for j, q in enumerate(section_data['questions'], start=1):
+                    TemplateQuestion.objects.create(
+                        section=section,
+                        question_text=q['text'],
+                        type=q['type'],
+                        rating_scale_min=1 if q['type'] == 'RATING' else None,
+                        rating_scale_max=5 if q['type'] == 'RATING' else None,
+                        display_order=j,
+                    )
+
+        self.stdout.write('  ✓ Templates and questions created')

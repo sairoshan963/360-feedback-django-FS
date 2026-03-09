@@ -63,7 +63,12 @@ def submit_feedback(task_id, user, answers):
 
     AuditLog.log(actor=user, action='SUBMIT_FEEDBACK',
                  entity_type='reviewer_task', entity_id=task_id,
-                 new_value={'response_id': str(response.id)})
+                 new_value={
+                     'reviewer': user.get_full_name(),
+                     'reviewee': task.reviewee.get_full_name(),
+                     'task_type': task.reviewer_type,
+                     'cycle': task.cycle.name,
+                 })
 
     return {'response_id': str(response.id), 'task_id': str(task_id)}
 
@@ -225,7 +230,12 @@ def get_employee_report(cycle_id, employee_id, viewer):
     sections = _get_feedback_sections(cycle, employee, viewer.role, viewer)
 
     AuditLog.log(actor=viewer, action='VIEW_REPORT', entity_type='report',
-                 entity_id=cycle_id, new_value={'reviewee_id': str(employee_id), 'viewer_role': viewer.role})
+                 entity_id=cycle_id, new_value={
+                     'viewed_by': viewer.get_full_name(),
+                     'viewer_role': viewer.role,
+                     'reviewee': employee.get_full_name(),
+                     'cycle': cycle.name,
+                 })
 
     return {
         'cycle_id':      str(cycle_id),
@@ -316,7 +326,12 @@ def export_employee_report_excel(cycle_id, employee_id, actor):
     ws.column_dimensions['E'].width = 40
 
     AuditLog.log(actor=actor, action='EXPORT_REPORT', entity_type='report',
-                 entity_id=cycle_id, new_value={'format': 'xlsx', 'reviewee_id': str(employee_id)})
+                 entity_id=cycle_id, new_value={
+                     'exported_by': actor.get_full_name(),
+                     'reviewee': employee.get_full_name(),
+                     'cycle': cycle.name,
+                     'format': 'xlsx',
+                 })
 
     buffer = BytesIO()
     wb.save(buffer)

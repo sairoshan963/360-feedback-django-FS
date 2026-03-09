@@ -295,7 +295,8 @@ def activate_cycle(cycle_id, actor):
         cycle.save(update_fields=['state', 'updated_at'])
 
     AuditLog.log(actor=actor, action='ACTIVATE_CYCLE', entity_type='review_cycle',
-                 entity_id=cycle_id, old_value={'state': 'DRAFT'}, new_value={'state': next_state})
+                 entity_id=cycle_id, old_value={'state': 'DRAFT'},
+                 new_value={'cycle': cycle.name, 'state': next_state})
 
     if next_state == 'ACTIVE':
         _notify_participants(cycle, 'CYCLE_ACTIVATED', 'Review Cycle Started',
@@ -329,7 +330,8 @@ def finalize_cycle(cycle_id, actor):
         cycle.save(update_fields=['state', 'updated_at'])
 
     AuditLog.log(actor=actor, action='FINALIZE_CYCLE', entity_type='review_cycle',
-                 entity_id=cycle_id, old_value={'state': 'NOMINATION'}, new_value={'state': 'ACTIVE'})
+                 entity_id=cycle_id, old_value={'state': 'NOMINATION'},
+                 new_value={'cycle': cycle.name, 'state': 'ACTIVE'})
 
     _notify_participants(cycle, 'CYCLE_ACTIVATED', 'Review Cycle Started',
         f'The review cycle "{cycle.name}" is now active. Please complete your assigned feedback tasks.',
@@ -384,7 +386,8 @@ def close_cycle(cycle_id, actor):
         cycle.save(update_fields=['state', 'updated_at'])
 
     AuditLog.log(actor=actor, action='CLOSE_CYCLE', entity_type='review_cycle',
-                 entity_id=cycle_id, old_value={'state': 'ACTIVE'}, new_value={'state': 'CLOSED'})
+                 entity_id=cycle_id, old_value={'state': 'ACTIVE'},
+                 new_value={'cycle': cycle.name, 'state': 'CLOSED'})
 
     return _get_cycle_or_404(cycle_id)
 
@@ -405,7 +408,8 @@ def release_results(cycle_id, actor):
         cycle.save(update_fields=['state', 'results_released_at', 'updated_at'])
 
     AuditLog.log(actor=actor, action='RELEASE_RESULTS', entity_type='review_cycle',
-                 entity_id=cycle_id, old_value={'state': 'CLOSED'}, new_value={'state': 'RESULTS_RELEASED'})
+                 entity_id=cycle_id, old_value={'state': 'CLOSED'},
+                 new_value={'cycle': cycle.name, 'state': 'RESULTS_RELEASED'})
 
     _notify_participants(cycle, 'RESULTS_RELEASED', 'Your Feedback Results Are Ready',
         f'Results for "{cycle.name}" have been released. View your 360° feedback report now.',
@@ -424,7 +428,8 @@ def archive_cycle(cycle_id, actor):
         cycle.save(update_fields=['state', 'updated_at'])
 
     AuditLog.log(actor=actor, action='ARCHIVE_CYCLE', entity_type='review_cycle',
-                 entity_id=cycle_id, old_value={'state': 'RESULTS_RELEASED'}, new_value={'state': 'ARCHIVED'})
+                 entity_id=cycle_id, old_value={'state': 'RESULTS_RELEASED'},
+                 new_value={'cycle': cycle.name, 'state': 'ARCHIVED'})
 
     return _get_cycle_or_404(cycle_id)
 
@@ -454,7 +459,7 @@ def override_cycle(cycle_id, target_state, reason, actor):
 
     AuditLog.log(actor=actor, action='OVERRIDE_ACTION', entity_type='review_cycle',
                  entity_id=cycle_id, old_value={'state': old_state},
-                 new_value={'state': target_state, 'reason': reason})
+                 new_value={'cycle': cycle.name, 'from': old_state, 'to': target_state, 'reason': reason})
 
     return _get_cycle_or_404(cycle_id)
 

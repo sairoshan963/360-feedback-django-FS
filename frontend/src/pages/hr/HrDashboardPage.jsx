@@ -70,7 +70,7 @@ export default function HrDashboardPage() {
     { title: 'Completion',    render: (_, r) => { const pct = r.total ? Math.round((r.submitted / r.total) * 100) : 0; return <Progress percent={pct} size="small" />; } },
   ];
 
-  const deptScoreData = (dash?.department_scores || []).map((d) => ({ name: d.department || 'Unknown', avg: parseFloat(d.avg_overall || 0).toFixed(2) }));
+  const deptScoreData = (dash?.department_scores || []).map((d) => ({ name: d.department || 'Unknown', avg: parseFloat(parseFloat(d.avg_overall || 0).toFixed(2)) }));
   const currentCycle  = cycles.find((c) => String(c.id) === cycleId);
   const resultsOut    = ['RESULTS_RELEASED', 'ARCHIVED'].includes(currentCycle?.state);
 

@@ -65,6 +65,13 @@
       retries: 10
       delay: 5
 
+    - name: Seed users and templates (ensures Simple 360° Review template exists)
+      shell: |
+        cd {{ app_path }}
+        docker compose exec -T backend python manage.py seed_users
+      register: seed_result
+      changed_when: false
+
     - name: Show running containers
       shell: docker ps --format "table {{ '{{.Names}}' }}\t{{ '{{.Status}}' }}\t{{ '{{.Ports}}' }}" | grep 360-django
       register: containers

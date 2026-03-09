@@ -115,7 +115,12 @@ def submit_nominations(cycle_id, user, peer_ids):
 
     AuditLog.log(actor=user, action='SUBMIT_NOMINATIONS',
                  entity_type='cycle', entity_id=cycle_id,
-                 new_value={'peer_count': len(peer_ids), 'status': status})
+                 new_value={
+                     'nominated_by': user.get_full_name(),
+                     'cycle': cycle.name,
+                     'peer_count': len(peer_ids),
+                     'status': status,
+                 })
 
     return PeerNomination.objects.filter(cycle=cycle, reviewee=user).select_related('peer')
 
@@ -170,7 +175,13 @@ def decide_nomination(nomination_id, status, actor, rejection_note=None):
 
     AuditLog.log(actor=actor, action=f'NOMINATION_{status}',
                  entity_type='peer_nomination', entity_id=nomination_id,
-                 new_value={'status': status, 'rejection_note': rejection_note})
+                 new_value={
+                     'decided_by': actor.get_full_name(),
+                     'reviewee': nomination.reviewee.get_full_name(),
+                     'peer': nomination.peer.get_full_name(),
+                     'status': status,
+                     **(({'rejection_note': rejection_note}) if rejection_note else {}),
+                 })
 
     # Notify reviewee if rejected
     if status == 'REJECTED':

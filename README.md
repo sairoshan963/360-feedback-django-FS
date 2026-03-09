@@ -284,8 +284,9 @@ ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
 1. SSHes into server
 2. `git pull` latest code from GitHub
 3. `docker compose up -d --build` (rebuilds changed containers)
-4. Health checks frontend and backend
-5. Prints final status
+4. Runs `seed_users` so demo users and the **Simple 360° Review** template exist
+5. Health checks frontend and backend
+6. Prints final status
 
 ### Manual server update (without Ansible)
 
