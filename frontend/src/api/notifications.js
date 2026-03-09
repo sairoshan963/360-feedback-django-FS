@@ -18,10 +18,10 @@ export const getUnreadCount = () => {
 
 export const markAsRead = (id) => {
   if (USE_MOCK) return delay({ success: true });
-  return api.patch(`/notifications/${id}/read/`);
+  return api.put(`/notifications/${id}/read/`);
 };
 
 export const markAllAsRead = () => {
   if (USE_MOCK) return delay({ success: true });
-  return api.post('/notifications/mark-all-read/');
+  return api.put('/notifications/mark-all-read/');
 };
