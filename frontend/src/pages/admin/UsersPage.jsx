@@ -3,8 +3,8 @@ import {
   Table, Button, Tag, Space, Modal, Form, Input, Select, AutoComplete,
   Typography, Card, message, Popconfirm,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { listUsers, createUser, updateUser, deleteUser } from '../../api/users';
+import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
+import { listUsers, createUser, updateUser, deleteUser, adminResetUserPassword } from '../../api/users';
 import usePageTitle from '../../hooks/usePageTitle';
 
 const { Title } = Typography;
@@ -81,6 +81,15 @@ export default function UsersPage() {
     catch { message.error('Failed to deactivate'); }
   };
 
+  const handleResetPassword = async (u) => {
+    try {
+      await adminResetUserPassword(u.id);
+      message.success(`Password reset email sent to ${u.email}`);
+    } catch (err) {
+      message.error(err.response?.data?.error || 'Failed to send reset email');
+    }
+  };
+
   const managerOptions = allUsers.filter((u) => u.id !== modal.user?.id);
   const deptOptions    = [...new Map(allUsers.filter((u) => u.department).map((u) => [u.department, u.department_name])).entries()].map(([id, name]) => ({ value: id, label: name || id }));
 
@@ -102,6 +111,15 @@ export default function UsersPage() {
       render: (_, r) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
+          <Popconfirm
+            title="Send password reset email?"
+            description={`A reset link will be sent to ${r.email}`}
+            onConfirm={() => handleResetPassword(r)}
+            okText="Send"
+            disabled={r.status !== 'ACTIVE'}
+          >
+            <Button size="small" icon={<KeyOutlined />} disabled={r.status !== 'ACTIVE'} title="Reset Password" />
+          </Popconfirm>
           <Popconfirm title="Deactivate this user?" onConfirm={() => handleDelete(r.id)} disabled={r.status === 'INACTIVE'}>
             <Button size="small" danger icon={<DeleteOutlined />} disabled={r.status === 'INACTIVE'} />
           </Popconfirm>

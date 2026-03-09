@@ -70,9 +70,21 @@ function navItems(role) {
   return all;
 }
 
+const useIsMobile = () => {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useState(() => {
+    const handler = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  });
+  return mobile;
+};
+
 export default function AppLayout() {
-  const [collapsed,  setCollapsed]  = useState(false);
+  const isMobile    = useIsMobile();
+  const [collapsed,  setCollapsed]  = useState(() => window.innerWidth < 768);
   const [reportOpen, setReportOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate  = useNavigate();
   const location  = useLocation();
   const { user, clearAuth } = useAuthStore();
@@ -112,66 +124,104 @@ export default function AppLayout() {
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
     : '';
 
+  const sidebarWidth  = isMobile ? 0   : (collapsed ? 80  : 264);
+  const contentLeft   = isMobile ? 0   : (collapsed ? 80  : 264);
+
+  const sideMenu = (
+    <>
+      <div style={{
+        padding: collapsed && !isMobile ? '12px 8px' : '12px 16px',
+        borderBottom: '1px solid #112240', height: 64,
+        display: 'flex', alignItems: 'center',
+        justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', gap: 10,
+      }}>
+        <img src="/gamyam360.png" alt="Gamyam 360" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
+        {(!collapsed || isMobile) && (
+          <Text strong style={{ color: '#fff', fontSize: 15, whiteSpace: 'nowrap' }}>
+            Gamyam 360° Feedback
+          </Text>
+        )}
+      </div>
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={[selectedKey]}
+        items={navItems(user?.role || '')}
+        onClick={({ key }) => { navigate(key); if (isMobile) setDrawerOpen(false); }}
+        style={{ borderRight: 0, marginTop: 24 }}
+      />
+    </>
+  );
+
   return (
     <Layout style={{ minHeight: '100vh', overflow: 'hidden' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        width={264}
-        style={{
-          background: '#001529',
-          position: 'fixed', left: 0, top: 0, bottom: 0,
-          height: '100vh', overflowY: 'auto', overflowX: 'hidden', zIndex: 1000,
-        }}
-        trigger={null}
-      >
-        <div style={{
-          padding: collapsed ? '12px 8px' : '12px 16px',
-          borderBottom: '1px solid #112240', height: 64,
-          display: 'flex', alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
-        }}>
-          <img src="/gamyam360.png" alt="Gamyam 360" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
-          {!collapsed && (
-            <Text strong style={{ color: '#fff', fontSize: 15, whiteSpace: 'nowrap' }}>
-              Gamyam 360° Feedback
-            </Text>
-          )}
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={navItems(user?.role || '')}
-          onClick={({ key }) => navigate(key)}
-          style={{ borderRight: 0, marginTop: 24 }}
-        />
-      </Sider>
 
-      <Layout style={{ marginLeft: collapsed ? 80 : 264, minHeight: '100vh', overflow: 'auto' }}>
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <Sider
+          collapsible collapsed={collapsed} onCollapse={setCollapsed}
+          width={264}
+          style={{
+            background: '#001529',
+            position: 'fixed', left: 0, top: 0, bottom: 0,
+            height: '100vh', overflowY: 'auto', overflowX: 'hidden', zIndex: 1000,
+          }}
+          trigger={null}
+        >
+          {sideMenu}
+        </Sider>
+      )}
+
+      {/* Mobile drawer */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: drawerOpen ? 1100 : -1,
+          pointerEvents: drawerOpen ? 'auto' : 'none',
+        }}>
+          {/* Backdrop */}
+          <div onClick={() => setDrawerOpen(false)} style={{
+            position: 'absolute', inset: 0,
+            background: drawerOpen ? 'rgba(0,0,0,0.5)' : 'transparent',
+            transition: 'background 0.2s',
+          }} />
+          {/* Drawer panel */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 264,
+            background: '#001529', overflowY: 'auto',
+            transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.25s ease',
+          }}>
+            {sideMenu}
+          </div>
+        </div>
+      )}
+
+      <Layout style={{ marginLeft: contentLeft, minHeight: '100vh', overflow: 'auto', transition: 'margin-left 0.2s' }}>
         <Header style={{
-          background: '#fff', padding: '0 24px',
+          background: '#fff', padding: '0 16px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderBottom: '1px solid #f0f0f0',
-          position: 'fixed', top: 0, right: 0, left: collapsed ? 80 : 264,
-          zIndex: 999, height: 64,
+          position: 'fixed', top: 0, right: 0, left: contentLeft,
+          zIndex: 999, height: 64, transition: 'left 0.2s',
         }}>
           <Space>
-            {collapsed
-              ? <MenuUnfoldOutlined onClick={() => setCollapsed(false)} style={{ fontSize: 18, cursor: 'pointer' }} />
-              : <MenuFoldOutlined   onClick={() => setCollapsed(true)}  style={{ fontSize: 18, cursor: 'pointer' }} />
+            {isMobile
+              ? <MenuUnfoldOutlined onClick={() => setDrawerOpen(true)}  style={{ fontSize: 20, cursor: 'pointer' }} />
+              : (collapsed
+                  ? <MenuUnfoldOutlined onClick={() => setCollapsed(false)} style={{ fontSize: 18, cursor: 'pointer' }} />
+                  : <MenuFoldOutlined   onClick={() => setCollapsed(true)}  style={{ fontSize: 18, cursor: 'pointer' }} />
+                )
             }
           </Space>
 
-          <Space size={20}>
+          <Space size={isMobile ? 12 : 20}>
             <div style={{ marginTop: 6 }}><NotificationBell /></div>
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
-                <Avatar size={44} src={avatarSrc || undefined} style={{ background: '#1677ff', flexShrink: 0 }}>
+                <Avatar size={isMobile ? 36 : 44} src={avatarSrc || undefined} style={{ background: '#1677ff', flexShrink: 0 }}>
                   {!avatarSrc && initials}
                 </Avatar>
-                {user && (
+                {!isMobile && user && (
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: 216 }}>
                     <span style={{
                       fontWeight: 600, fontSize: 17, color: '#262626',
@@ -179,10 +229,7 @@ export default function AppLayout() {
                     }}>
                       {[user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ')}
                     </span>
-                    <span style={{
-                      fontSize: 14, color: '#8c8c8c', lineHeight: 1.4,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
+                    <span style={{ fontSize: 14, color: '#8c8c8c', lineHeight: 1.4 }}>
                       {ROLE_LABEL[user.role]}
                     </span>
                   </div>
@@ -192,11 +239,11 @@ export default function AppLayout() {
           </Space>
         </Header>
 
-        <div style={{ position: 'fixed', top: 64, right: 0, left: collapsed ? 80 : 264, zIndex: 998 }}>
+        <div style={{ position: 'fixed', top: 64, right: 0, left: contentLeft, zIndex: 998, transition: 'left 0.2s' }}>
           <AnnouncementBanner />
         </div>
 
-        <Content style={{ margin: 24, minHeight: 280, marginTop: 88 }}>
+        <Content style={{ margin: isMobile ? 12 : 24, minHeight: 280, marginTop: 88 }}>
           <Outlet />
         </Content>
         <FeedbackButton open={reportOpen} onClose={() => setReportOpen(false)} />

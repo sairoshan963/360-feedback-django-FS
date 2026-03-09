@@ -81,9 +81,10 @@ function OrgNode({ data }) {
 
 const nodeTypes = { org: OrgNode };
 
-const CSV_TEMPLATE = `email,first_name,middle_name,last_name,role,department
-alice@gamyam.com,Alice,,Smith,EMPLOYEE,Engineering
-bob@gamyam.com,Bob,,Jones,MANAGER,Engineering`;
+const CSV_TEMPLATE = `email,first_name,middle_name,last_name,job_title,role,department,manager_email
+alice@gamyam.com,Alice,,Smith,Software Engineer,EMPLOYEE,Engineering,bob@gamyam.com
+bob@gamyam.com,Bob,,Jones,Engineering Manager,MANAGER,Engineering,
+carol@gamyam.com,Carol,,Davis,HR Manager,HR_ADMIN,Human Resources,`;
 
 export default function OrgPage() {
   usePageTitle('Organisation');
@@ -144,7 +145,15 @@ export default function OrgPage() {
       setImporting(true);
       try {
         const res = await importOrg(e.target.result);
-        message.success(`Imported ${res.data.created} user(s) (${res.data.skipped} skipped)`);
+        const d = res.data;
+        const parts = [`${d.created} created`];
+        if (d.updated)        parts.push(`${d.updated} updated`);
+        if (d.skipped)        parts.push(`${d.skipped} skipped`);
+        if (d.manager_linked) parts.push(`${d.manager_linked} managers linked`);
+        message.success(`Import complete: ${parts.join(', ')}`);
+        if (d.errors?.length) {
+          d.errors.slice(0, 3).forEach((e) => message.warning(`Row ${e.row}: ${e.error}`, 6));
+        }
         load();
       } catch (err) {
         message.error(err.response?.data?.message || 'Import failed');
@@ -213,7 +222,7 @@ export default function OrgPage() {
                 <Button type="primary" icon={<UploadOutlined />} size="small" loading={importing}>Import CSV</Button>
               </Upload>
             </Space>
-            <Alert message="CSV: email, first_name, middle_name (optional), last_name, role, department (optional)" type="info" showIcon style={{ padding: '2px 10px', fontSize: 12 }} />
+            <Alert message="Columns: email, first_name, middle_name (opt), last_name, job_title (opt), role, department (opt), manager_email (opt). Department auto-created. Manager linked after all rows imported." type="info" showIcon style={{ padding: '2px 10px', fontSize: 12 }} />
           </Space>
         </Card>
       )}

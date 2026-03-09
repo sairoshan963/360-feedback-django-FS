@@ -62,6 +62,11 @@ export const updateManagerRelationship = (userId, data) => {
   return api.post(`/org/hierarchy/${userId}/`, data);
 };
 
+export const adminResetUserPassword = (id) => {
+  if (USE_MOCK) return delay({ success: true, message: 'Reset email sent.' });
+  return api.post(`/users/${id}/reset-password/`);
+};
+
 export const importOrg = (csvText) => {
   if (USE_MOCK) return delay({ success: true, imported: 13 });
   const form = new FormData();

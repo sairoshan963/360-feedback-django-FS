@@ -92,12 +92,55 @@ class UserDetailView(APIView):
         return Response({'success': True, 'message': 'User deactivated'})
 
 
+# ─── Admin: Reset a specific user's password ─────────────────────────────────
+
+class AdminResetUserPasswordView(APIView):
+    """
+    POST /api/v1/users/<pk>/reset-password/
+    Super Admin triggers a password reset email for any user.
+    """
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def post(self, request, pk):
+        try:
+            target_user = User.objects.get(id=pk)
+        except User.DoesNotExist:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+
+        if target_user.status != 'ACTIVE':
+            return Response({'success': False, 'error': 'Cannot reset password for inactive user'}, status=400)
+
+        from apps.auth_app.services import _create_reset_token
+        from shared.email import send_admin_password_reset
+        from django.conf import settings
+
+        raw_token  = _create_reset_token(target_user)
+        reset_link = f'{settings.FRONTEND_URL}/reset-password?token={raw_token}'
+        send_admin_password_reset(
+            to_email   = target_user.email,
+            first_name = target_user.first_name,
+            reset_link = reset_link,
+            admin_name = request.user.get_full_name() or request.user.email,
+        )
+
+        from apps.audit.models import AuditLog
+        AuditLog.log(
+            actor=request.user, action='ADMIN_PASSWORD_RESET',
+            entity_type='user', entity_id=target_user.id,
+            new_value={'target_user': target_user.get_full_name(), 'email': target_user.email},
+        )
+
+        return Response({'success': True, 'message': f'Password reset email sent to {target_user.email}'})
+
+
 # ─── CSV Bulk Import ──────────────────────────────────────────────────────────
 
 class UserBulkImportView(APIView):
     """
     POST /api/v1/users/import/
-    Accepts CSV with columns: email, first_name, middle_name, last_name, job_title, role, department
+    Columns: email, first_name, middle_name, last_name, job_title, role, department, manager_email
+    - department: auto-creates if not exists
+    - manager_email: assigns OrgHierarchy after all users are created (2-pass)
     """
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
@@ -106,11 +149,13 @@ class UserBulkImportView(APIView):
         if not file:
             return Response({'success': False, 'error': 'No file uploaded'}, status=400)
 
-        content   = file.read().decode('utf-8')
-        reader    = csv.DictReader(io.StringIO(content))
-        created   = 0
-        skipped   = 0
-        errors    = []
+        content = file.read().decode('utf-8-sig')  # handle BOM from Excel exports
+        reader  = csv.DictReader(io.StringIO(content))
+        created = 0
+        skipped = 0
+        updated = 0
+        errors  = []
+        manager_assignments = []  # defer until after all users created
 
         for i, row in enumerate(reader, start=2):
             email = (row.get('email') or '').strip().lower()
@@ -118,10 +163,7 @@ class UserBulkImportView(APIView):
                 errors.append({'row': i, 'error': 'email is required'})
                 continue
 
-            if User.objects.filter(email=email).exists():
-                skipped += 1
-                continue
-
+            # Department — auto-create
             dept_name = (row.get('department') or '').strip()
             dept = None
             if dept_name:
@@ -130,6 +172,27 @@ class UserBulkImportView(APIView):
             role = (row.get('role') or 'EMPLOYEE').strip().upper()
             if role not in ['SUPER_ADMIN', 'HR_ADMIN', 'MANAGER', 'EMPLOYEE']:
                 role = 'EMPLOYEE'
+
+            manager_email = (row.get('manager_email') or '').strip().lower()
+
+            if User.objects.filter(email=email).exists():
+                # Update department if provided and not already set
+                existing = User.objects.get(email=email)
+                changed = False
+                if dept and not existing.department_id:
+                    existing.department = dept
+                    changed = True
+                if role and existing.role != role:
+                    existing.role = role
+                    changed = True
+                if changed:
+                    existing.save()
+                    updated += 1
+                else:
+                    skipped += 1
+                if manager_email:
+                    manager_assignments.append((email, manager_email))
+                continue
 
             user = User(
                 email=email,
@@ -145,11 +208,37 @@ class UserBulkImportView(APIView):
             user.save()
             created += 1
 
+            if manager_email:
+                manager_assignments.append((email, manager_email))
+
+        # ── 2nd pass: assign managers (all users now exist) ──────────────
+        manager_linked = 0
+        manager_errors = []
+        for emp_email, mgr_email in manager_assignments:
+            try:
+                emp = User.objects.get(email=emp_email)
+                mgr = User.objects.get(email=mgr_email)
+                OrgHierarchy.objects.update_or_create(
+                    employee=emp, defaults={'manager': mgr}
+                )
+                manager_linked += 1
+            except User.DoesNotExist:
+                manager_errors.append(f'{emp_email} → manager {mgr_email} not found')
+
+        from apps.audit.models import AuditLog
+        AuditLog.log(
+            actor=request.user, action='IMPORT_ORG',
+            entity_type='bulk_import',
+            new_value={'created': created, 'updated': updated, 'skipped': skipped, 'manager_linked': manager_linked},
+        )
+
         return Response({
-            'success': True,
-            'created': created,
-            'skipped': skipped,
-            'errors':  errors,
+            'success':        True,
+            'created':        created,
+            'updated':        updated,
+            'skipped':        skipped,
+            'manager_linked': manager_linked,
+            'errors':         errors + [{'row': '—', 'error': e} for e in manager_errors],
         })
 
 

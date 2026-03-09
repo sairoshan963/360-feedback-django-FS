@@ -134,6 +134,19 @@ def upload_avatar(user, image_file):
 
 # ─── Forgot Password ──────────────────────────────────────────────────────────
 
+def _create_reset_token(user):
+    """Create (or replace) a password reset token for a user. Returns the raw token."""
+    PasswordResetToken.objects.filter(user=user).delete()
+    raw_token  = os.urandom(32).hex()
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    PasswordResetToken.objects.create(
+        user=user,
+        token_hash=token_hash,
+        expires_at=timezone.now() + timedelta(hours=1),
+    )
+    return raw_token
+
+
 def request_password_reset(email):
     """
     Always returns silently — never reveals whether the email exists.
@@ -143,21 +156,8 @@ def request_password_reset(email):
     except User.DoesNotExist:
         return  # silent — prevent email enumeration
 
-    # Invalidate any existing tokens
-    PasswordResetToken.objects.filter(user=user).delete()
-
-    raw_token  = os.urandom(32).hex()
-    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    expires_at = timezone.now() + timedelta(hours=1)
-
-    PasswordResetToken.objects.create(
-        user=user,
-        token_hash=token_hash,
-        expires_at=expires_at,
-    )
-
-    frontend_base = settings.FRONTEND_URL
-    reset_link    = f'{frontend_base}/reset-password?token={raw_token}'
+    raw_token  = _create_reset_token(user)
+    reset_link = f'{settings.FRONTEND_URL}/reset-password?token={raw_token}'
     send_password_reset(user.email, user.first_name, reset_link)
 
 
