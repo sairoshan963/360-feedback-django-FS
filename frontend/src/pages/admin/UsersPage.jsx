@@ -25,12 +25,20 @@ const JOB_TITLES = [
 
 export default function UsersPage() {
   usePageTitle('Users');
-  const [users,   setUsers]   = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
+  const [users,    setUsers]    = useState([]);
+  const [allUsers, setAllUsers] = useState([]);  // unfiltered — used for manager dropdown
+  const [loading,  setLoading]  = useState(false);
+  const [searchInput,   setSearchInput]   = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [modal,   setModal]   = useState({ open: false, user: null });
   const [form]                = Form.useForm();
+
+  const loadAll = async () => {
+    try {
+      const res = await listUsers({});
+      setAllUsers(res.data.users || []);
+    } catch { /* silent — table still works */ }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -42,6 +50,7 @@ export default function UsersPage() {
     finally { setLoading(false); }
   };
 
+  useEffect(() => { loadAll(); }, []);
   useEffect(() => { load(); }, [appliedSearch]);
 
   const openCreate = () => { form.resetFields(); setModal({ open: true, user: null }); };
@@ -61,18 +70,19 @@ export default function UsersPage() {
       else { await createUser(vals); message.success('User created'); }
       setModal({ open: false, user: null });
       load();
+      loadAll();
     } catch (err) {
       message.error(err.response?.data?.message || err.response?.data?.email?.[0] || 'Save failed');
     }
   };
 
   const handleDelete = async (id) => {
-    try { await deleteUser(id); message.success('User deactivated'); load(); }
+    try { await deleteUser(id); message.success('User deactivated'); load(); loadAll(); }
     catch { message.error('Failed to deactivate'); }
   };
 
-  const managerOptions  = users.filter((u) => u.id !== modal.user?.id);
-  const deptOptions     = [...new Map(users.filter((u) => u.department).map((u) => [u.department, u.department_name])).entries()].map(([id, name]) => ({ value: id, label: name || id }));
+  const managerOptions = allUsers.filter((u) => u.id !== modal.user?.id);
+  const deptOptions    = [...new Map(allUsers.filter((u) => u.department).map((u) => [u.department, u.department_name])).entries()].map(([id, name]) => ({ value: id, label: name || id }));
 
   const columns = [
     { title: 'Name',      render: (_, r) => [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ') },

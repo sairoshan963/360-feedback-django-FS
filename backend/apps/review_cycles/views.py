@@ -2,7 +2,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from shared.permissions import IsHRAdmin, IsSuperAdmin, IsEmployee
+from shared.permissions import IsHRAdmin, IsHROrManager, IsSuperAdmin, IsEmployee
 from . import services
 from .serializers import (
     TemplateSerializer, TemplateListSerializer,
@@ -45,7 +45,11 @@ class TemplateDetailView(APIView):
 # ─── Cycles ───────────────────────────────────────────────────────────────────
 
 class CycleListCreateView(APIView):
-    permission_classes = [IsAuthenticated, IsHRAdmin]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsHRAdmin()]
+        return [IsAuthenticated(), IsHROrManager()]
 
     def get(self, request):
         state  = request.query_params.get('state')
@@ -73,6 +77,10 @@ class CycleDetailView(APIView):
         cycle = services.get_cycle(pk)
         return Response({'success': True, 'cycle': ReviewCycleSerializer(cycle).data})
 
+    def put(self, request, pk):
+        cycle = services.update_cycle(pk, request.data, request.user)
+        return Response({'success': True, 'cycle': ReviewCycleSerializer(cycle).data})
+
     def patch(self, request, pk):
         cycle = services.update_cycle(pk, request.data, request.user)
         return Response({'success': True, 'cycle': ReviewCycleSerializer(cycle).data})
@@ -81,7 +89,11 @@ class CycleDetailView(APIView):
 # ─── Participants ─────────────────────────────────────────────────────────────
 
 class CycleParticipantsView(APIView):
-    permission_classes = [IsAuthenticated, IsHRAdmin]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsHRAdmin()]
+        return [IsAuthenticated()]
 
     def get(self, request, pk):
         participants = services.get_participants(pk)
@@ -164,17 +176,83 @@ class CycleProgressView(APIView):
         return Response({'success': True, 'progress': list(progress)})
 
 
+class NominationExcelDownloadView(APIView):
+    permission_classes = [IsAuthenticated, IsHRAdmin]
+
+    def get(self, request, pk):
+        import io
+        from openpyxl import Workbook
+        from django.http import HttpResponse
+
+        cycle    = services.get_cycle(pk)
+        noms     = services.get_nomination_status(pk)
+        wb       = Workbook()
+        ws       = wb.active
+        ws.title = 'Nominations'
+        ws.append(['Name', 'Email', 'Department', 'Nominated', 'Approved', 'Min Required', 'Status'])
+        for p in noms:
+            ws.append([
+                f"{p['first_name']} {p['last_name']}", p['email'],
+                p.get('department') or '—', p['nominated'], p['approved'],
+                p['min_required'], p['status'],
+            ])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        fname = f"nominations-{cycle.name.replace(' ', '_')}.xlsx"
+        response = HttpResponse(buf.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+        return response
+
+
+class ParticipantExcelDownloadView(APIView):
+    permission_classes = [IsAuthenticated, IsHRAdmin]
+
+    def get(self, request, pk):
+        import io
+        from openpyxl import Workbook
+        from django.http import HttpResponse
+
+        cycle    = services.get_cycle(pk)
+        parts    = services.get_participant_task_status(pk)
+        dl_type  = request.query_params.get('type', 'pending')
+        if dl_type == 'done':
+            rows = [p for p in parts if p['overall'] in ['COMPLETED', 'PARTIAL']]
+            label = 'completed'
+        else:
+            rows = [p for p in parts if p['overall'] in ['PENDING', 'NO_TASKS', 'MISSED']]
+            label = 'pending'
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = label.capitalize()
+        ws.append(['Name', 'Email', 'Department', 'Total Tasks', 'Submitted', 'Locked', 'Pending', 'Overall Status'])
+        for p in rows:
+            ws.append([
+                f"{p['first_name']} {p['last_name']}", p['email'],
+                p.get('department') or '—', p['total'], p['submitted'],
+                p['locked'], p['pending'], p['overall'],
+            ])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        fname = f"{label}-{cycle.name.replace(' ', '_')}.xlsx"
+        response = HttpResponse(buf.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+        return response
+
+
 class NominationStatusView(APIView):
     permission_classes = [IsAuthenticated, IsHRAdmin]
 
     def get(self, request, pk):
-        status = services.get_nomination_status(pk)
-        return Response({'success': True, 'nomination_status': status})
+        participants = services.get_nomination_status(pk)
+        return Response({'success': True, 'participants': participants})
 
 
 class ParticipantTaskStatusView(APIView):
     permission_classes = [IsAuthenticated, IsHRAdmin]
 
     def get(self, request, pk):
-        status = services.get_participant_task_status(pk)
-        return Response({'success': True, 'task_status': status})
+        participants = services.get_participant_task_status(pk)
+        return Response({'success': True, 'participants': participants})

@@ -23,7 +23,11 @@ urlpatterns = [
     path('<uuid:pk>/override/',        views.CycleOverrideView.as_view(),        name='cycle-override'),
 
     # Progress & status
-    path('<uuid:pk>/progress/',          views.CycleProgressView.as_view(),         name='cycle-progress'),
-    path('<uuid:pk>/nomination-status/', views.NominationStatusView.as_view(),      name='cycle-nomination-status'),
-    path('<uuid:pk>/task-status/',       views.ParticipantTaskStatusView.as_view(), name='cycle-task-status'),
+    path('<uuid:pk>/progress/',              views.CycleProgressView.as_view(),            name='cycle-progress'),
+    path('<uuid:pk>/nomination-status/',     views.NominationStatusView.as_view(),         name='cycle-nomination-status'),
+    path('<uuid:pk>/task-status/',           views.ParticipantTaskStatusView.as_view(),    name='cycle-task-status'),
+
+    # Excel downloads
+    path('<uuid:pk>/nomination-download/',   views.NominationExcelDownloadView.as_view(),  name='cycle-nomination-download'),
+    path('<uuid:pk>/participant-download/',  views.ParticipantExcelDownloadView.as_view(), name='cycle-participant-download'),
 ]

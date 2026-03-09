@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card, Row, Col, Select, Statistic, Table, Typography, Space,
-  Progress, Empty, message, Tag,
+  Progress, Empty, message, Tag, Button, Input, Tooltip,
 } from 'antd';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
-import { listCycles } from '../../api/cycles';
+import { EyeOutlined, LockOutlined } from '@ant-design/icons';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
+import { listCycles, getParticipants } from '../../api/cycles';
 import { getHrDashboard } from '../../api/reports';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -30,10 +32,14 @@ const DeptTooltip = ({ active, payload, label }) => {
 
 export default function HrDashboardPage() {
   usePageTitle('HR Dashboard');
-  const [cycles,  setCycles]  = useState([]);
-  const [cycleId, setCycleId] = useState('');
-  const [dash,    setDash]    = useState(null);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const [cycles,        setCycles]        = useState([]);
+  const [cycleId,       setCycleId]       = useState('');
+  const [dash,          setDash]          = useState(null);
+  const [participants,  setParticipants]  = useState([]);
+  const [loading,       setLoading]       = useState(false);
+  const [partSearch,    setPartSearch]    = useState('');
 
   useEffect(() => {
     listCycles().then((r) => {
@@ -46,7 +52,14 @@ export default function HrDashboardPage() {
   useEffect(() => {
     if (!cycleId) return;
     setLoading(true);
-    getHrDashboard(cycleId).then((r) => setDash(r.data.dashboard)).catch(() => message.error('Failed to load dashboard')).finally(() => setLoading(false));
+    setParticipants([]);
+    Promise.all([
+      getHrDashboard(cycleId),
+      getParticipants(cycleId),
+    ]).then(([dashRes, partRes]) => {
+      setDash(dashRes.data.dashboard);
+      setParticipants(partRes.data.participants || []);
+    }).catch(() => message.error('Failed to load dashboard')).finally(() => setLoading(false));
   }, [cycleId]);
 
   const submissionCols = [
@@ -58,7 +71,14 @@ export default function HrDashboardPage() {
   ];
 
   const deptScoreData = (dash?.department_scores || []).map((d) => ({ name: d.department || 'Unknown', avg: parseFloat(d.avg_overall || 0).toFixed(2) }));
-  const currentCycle = cycles.find((c) => String(c.id) === cycleId);
+  const currentCycle  = cycles.find((c) => String(c.id) === cycleId);
+  const resultsOut    = ['RESULTS_RELEASED', 'ARCHIVED'].includes(currentCycle?.state);
+
+  const filteredParticipants = partSearch.trim()
+    ? participants.filter((p) =>
+        `${p.first_name} ${p.last_name} ${p.email}`.toLowerCase()
+          .includes(partSearch.toLowerCase()))
+    : participants;
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -104,7 +124,7 @@ export default function HrDashboardPage() {
                   <CartesianGrid stroke="#ede9fe" strokeDasharray="4 4" vertical={false} />
                   <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
                   <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => v.toFixed(1)} width={36} />
-                  <Tooltip content={<DeptTooltip />} cursor={{ fill: 'rgba(99,102,241,0.07)' }} />
+                  <RechartTooltip content={<DeptTooltip />} cursor={{ fill: 'rgba(99,102,241,0.07)' }} />
                   <ReferenceLine y={3} stroke="#c4b5fd" strokeDasharray="5 4" label={{ value: 'Mid (3.0)', position: 'insideTopRight', fontSize: 11, fill: '#a78bfa' }} />
                   <Bar dataKey="avg" name="Avg Score" fill="url(#deptGrad)" radius={[8, 8, 0, 0]}>
                     <LabelList dataKey="avg" position="top" style={{ fontSize: 12, fill: '#4f46e5', fontWeight: 700 }} />
@@ -112,6 +132,73 @@ export default function HrDashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             ) : <Empty description="Department scores available after cycle closes" />}
+          </Card>
+
+          {/* Participants & Reports */}
+          <Card
+            title={
+              <Space>
+                <span>Participants & Reports</span>
+                <Tag color={resultsOut ? 'purple' : 'default'}>
+                  {filteredParticipants.length} people
+                </Tag>
+                {resultsOut
+                  ? <Tag color="success">Reports Available</Tag>
+                  : <Tag color="warning">Results not yet released</Tag>}
+              </Space>
+            }
+            loading={loading}
+            extra={
+              <Input.Search
+                placeholder="Search by name or email…"
+                value={partSearch}
+                onChange={(e) => setPartSearch(e.target.value)}
+                allowClear
+                style={{ width: 260 }}
+              />
+            }
+          >
+            {participants.length === 0 && !loading
+              ? <Empty description="No participants yet" />
+              : (
+                <Table
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `${t} participants` }}
+                  dataSource={filteredParticipants}
+                  columns={[
+                    {
+                      title: 'Name',
+                      render: (_, r) => [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' '),
+                      sorter: (a, b) => `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`),
+                    },
+                    { title: 'Email',      dataIndex: 'email' },
+                    { title: 'Department', dataIndex: 'department', render: (v) => v || '—' },
+                    { title: 'Role',       dataIndex: 'role', render: (v) => <Tag>{v?.replace('_', ' ')}</Tag> },
+                    {
+                      title: 'Report',
+                      width: 140,
+                      render: (_, r) => resultsOut ? (
+                        <Button
+                          size="small"
+                          type="primary"
+                          icon={<EyeOutlined />}
+                          onClick={() => navigate(`/reports/${cycleId}/${r.id}`)}
+                        >
+                          View Report
+                        </Button>
+                      ) : (
+                        <Tooltip title="Reports will be available once results are released">
+                          <Button size="small" icon={<LockOutlined />} disabled>
+                            Not Released
+                          </Button>
+                        </Tooltip>
+                      ),
+                    },
+                  ]}
+                />
+              )
+            }
           </Card>
         </>
       )}

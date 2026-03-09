@@ -21,7 +21,7 @@ def submit_feedback(task_id, user, answers):
     if task.reviewer != user:
         raise PermissionDenied('Access denied')
 
-    if task.status not in ['PENDING', 'IN_PROGRESS']:
+    if task.status not in ['CREATED', 'PENDING', 'IN_PROGRESS']:
         raise ValidationError('Task is already submitted or locked')
 
     if task.cycle.state != 'ACTIVE':

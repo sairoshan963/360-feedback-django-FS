@@ -7,7 +7,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 
 const { Title } = Typography;
 
-const STATUS_COLOR = { PENDING: 'default', DRAFT: 'blue', SUBMITTED: 'green', LOCKED: 'orange' };
+const STATUS_COLOR = { CREATED: 'default', PENDING: 'default', DRAFT: 'blue', SUBMITTED: 'green', LOCKED: 'orange' };
 
 export default function ManagerTasksPage() {
   usePageTitle('My Tasks');
@@ -87,7 +87,7 @@ export default function ManagerTasksPage() {
     },
   ];
 
-  const pending   = tasks.filter((t) => ['PENDING','DRAFT'].includes(t.status));
+  const pending   = tasks.filter((t) => ['CREATED','PENDING','DRAFT'].includes(t.status));
   const completed = tasks.filter((t) => ['SUBMITTED','LOCKED'].includes(t.status));
 
   return (

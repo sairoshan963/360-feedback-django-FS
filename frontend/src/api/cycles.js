@@ -9,7 +9,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 export const listTemplates = () => {
   if (USE_MOCK) return delay({ success: true, templates: TEMPLATES });
-  return api.get('/templates/');
+  return api.get('/cycles/templates/');
 };
 
 export const getTemplate = (id) => {
@@ -17,12 +17,12 @@ export const getTemplate = (id) => {
     const t = TEMPLATES.find((x) => x.id === id);
     return delay({ success: true, template: t || TEMPLATES[0] });
   }
-  return api.get(`/templates/${id}/`);
+  return api.get(`/cycles/templates/${id}/`);
 };
 
 export const createTemplate = (data) => {
   if (USE_MOCK) return delay({ success: true, template: { id: 't-new', ...data } });
-  return api.post('/templates/', data);
+  return api.post('/cycles/templates/', data);
 };
 
 export const updateTemplate = (id, data) => {
@@ -30,7 +30,7 @@ export const updateTemplate = (id, data) => {
     const t = TEMPLATES.find((x) => x.id === id) || TEMPLATES[0];
     return delay({ success: true, template: { ...t, ...data } });
   }
-  return api.put(`/templates/${id}/`, data);
+  return api.put(`/cycles/templates/${id}/`, data);
 };
 
 // ─── Cycles ───────────────────────────────────────────────────────────────────

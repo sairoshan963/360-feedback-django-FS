@@ -193,7 +193,8 @@ export default function NominationsPage() {
                     targetKeys={selected}
                     onChange={(nextKeys) => { if (nextKeys.length <= cycle.peer_max_count) setSelected(nextKeys); else message.warning(`Maximum ${cycle.peer_max_count} peers allowed`); }}
                     render={(item) => <div><div>{item.title}</div><div style={{ fontSize: 11, color: '#999' }}>{item.description}</div></div>}
-                    listStyle={{ width: 280, height: 360 }}
+                    listStyle={{ width: '45%', height: 440 }}
+                    style={{ width: '100%' }}
                     titles={['All Employees', `My Nominees (${selected.length}/${cycle.peer_max_count})`]} />
                 </Card>
               )}

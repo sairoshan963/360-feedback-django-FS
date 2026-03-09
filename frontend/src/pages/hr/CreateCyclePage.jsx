@@ -57,26 +57,45 @@ export default function CreateCyclePage() {
     } finally { setLoading(false); }
   };
 
-  const departments = [...new Set(users.map((u) => u.department).filter(Boolean))].sort();
+  // departments: array of [deptId, deptName] pairs, sorted by name
+  const departments = [...new Map(
+    users.filter((u) => u.department && u.department_name)
+         .map((u) => [u.department, u.department_name])
+  ).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+
+  const noDeptUsers = users.filter((u) => !u.department);
+
   const transferData = users.map((u) => ({
     key: u.id,
     title: `${u.first_name} ${u.last_name} (${u.email})`,
-    description: u.department ? `${u.role} · ${u.department}` : u.role,
-    department: u.department,
+    description: u.department_name ? `${u.role} · ${u.department_name}` : u.role,
+    department: u.department_name || '',
     role: u.role,
+    jobTitle: u.job_title || '',
     name: `${u.first_name} ${u.last_name}`,
   }));
 
   const ROLE_COLOR = { SUPER_ADMIN: 'magenta', HR_ADMIN: 'gold', MANAGER: 'blue', EMPLOYEE: 'cyan' };
 
-  const getDeptState = (dept) => {
-    const ids = users.filter((u) => u.department === dept).map((u) => u.id);
+  const getDeptState = (deptId) => {
+    const ids = users.filter((u) => u.department === deptId).map((u) => u.id);
     const sel = ids.filter((id) => targetKeys.includes(id)).length;
     return { checked: sel === ids.length && ids.length > 0, indeterminate: sel > 0 && sel < ids.length, total: ids.length, sel };
   };
 
-  const toggleDept = (dept, checked) => {
-    const ids = users.filter((u) => u.department === dept).map((u) => u.id);
+  const getGroupState = (groupUsers) => {
+    const ids = groupUsers.map((u) => u.id);
+    const sel = ids.filter((id) => targetKeys.includes(id)).length;
+    return { checked: sel === ids.length && ids.length > 0, indeterminate: sel > 0 && sel < ids.length, total: ids.length, sel };
+  };
+
+  const toggleDept = (deptId, checked) => {
+    const ids = users.filter((u) => u.department === deptId).map((u) => u.id);
+    setTargetKeys((prev) => checked ? [...new Set([...prev, ...ids])] : prev.filter((k) => !ids.includes(k)));
+  };
+
+  const toggleGroup = (groupUsers, checked) => {
+    const ids = groupUsers.map((u) => u.id);
     setTargetKeys((prev) => checked ? [...new Set([...prev, ...ids])] : prev.filter((k) => !ids.includes(k)));
   };
 
@@ -135,7 +154,7 @@ export default function CreateCyclePage() {
             <Form.Item name="nomination_approval_mode" label="Nomination Approval" initialValue="AUTO">
               <Select style={{ width: 220 }}>
                 <Option value="AUTO">Auto-approve (immediate)</Option>
-                <Option value="MANAGER_APPROVAL">Manager must approve</Option>
+                <Option value="MANUAL">Manager must approve</Option>
               </Select>
             </Form.Item>
           </Space>
@@ -153,23 +172,40 @@ export default function CreateCyclePage() {
         <Form.Item>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 14, padding: '12px 14px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
             <span style={{ fontSize: 12, color: '#888', fontWeight: 500, marginRight: 4 }}>Quick select:</span>
-            {departments.length > 0 ? departments.map((dept) => {
-              const { checked, indeterminate, total, sel } = getDeptState(dept);
+            {departments.length > 0 ? departments.map(([deptId, deptName]) => {
+              const { checked, indeterminate, total, sel } = getDeptState(deptId);
               return (
-                <div key={dept} onClick={() => toggleDept(dept, !checked)} style={{
+                <div key={deptId} onClick={() => toggleDept(deptId, !checked)} style={{
                   cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '4px 12px', borderRadius: 20, fontSize: 13,
                   border: `1px solid ${checked?'#1677ff':indeterminate?'#fa8c16':'#d9d9d9'}`,
                   background: checked?'#1677ff':indeterminate?'#fff7e6':'#fff',
                   color: checked?'#fff':indeterminate?'#d46b08':'#555',
                 }}>
-                  {dept}
+                  {deptName}
                   <span style={{ background: checked?'rgba(255,255,255,0.25)':indeterminate?'#ffd591':'#f0f0f0', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 600 }}>
                     {sel}/{total}
                   </span>
                 </div>
               );
             }) : <span style={{ color: '#bbb', fontSize: 13 }}>No departments configured — assign via Org Hierarchy.</span>}
+            {noDeptUsers.length > 0 && (() => {
+              const { checked, indeterminate, total, sel } = getGroupState(noDeptUsers);
+              return (
+                <div onClick={() => toggleGroup(noDeptUsers, !checked)} style={{
+                  cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 20, fontSize: 13,
+                  border: `1px solid ${checked?'#8c8c8c':indeterminate?'#fa8c16':'#d9d9d9'}`,
+                  background: checked?'#8c8c8c':indeterminate?'#fff7e6':'#fff',
+                  color: checked?'#fff':indeterminate?'#d46b08':'#555',
+                }}>
+                  No Department
+                  <span style={{ background: checked?'rgba(255,255,255,0.25)':indeterminate?'#ffd591':'#f0f0f0', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 600 }}>
+                    {sel}/{total}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
           <Transfer
             dataSource={transferData}
@@ -183,9 +219,11 @@ export default function CreateCyclePage() {
                 <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {item.name}
                   <span style={{ color: '#aaa', fontSize: 11, marginLeft: 6 }}>({item.title.match(/\(([^)]+)\)/)?.[1]})</span>
+                  {item.jobTitle?.toLowerCase().includes('intern') && (
+                    <span style={{ marginLeft: 5, fontSize: 10, background: '#f9f0ff', color: '#722ed1', border: '1px solid #d3adf7', borderRadius: 4, padding: '0 4px' }}>Intern</span>
+                  )}
                 </span>
                 <span style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 8 }}>
-                  <Tag color={ROLE_COLOR[item.role]} style={{ fontSize: 10, lineHeight: '18px', padding: '0 5px', margin: 0 }}>{item.role?.replace(/_/g,' ')}</Tag>
                   {item.department && <Tag color="geekblue" style={{ fontSize: 10, lineHeight: '18px', padding: '0 5px', margin: 0 }}>{item.department}</Tag>}
                 </span>
               </span>

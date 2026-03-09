@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { RequireAuth, RequireRole, roleDashboard } from './ProtectedRoute';
 import useAuthStore from '../store/authStore';
 
-import LoginPage        from '../pages/auth/LoginPage';
-import AuthCallbackPage  from '../pages/auth/AuthCallbackPage';
-import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
-import UnauthorizedPage  from '../pages/auth/UnauthorizedPage';
+import LoginPage           from '../pages/auth/LoginPage';
+import AuthCallbackPage    from '../pages/auth/AuthCallbackPage';
+import ResetPasswordPage   from '../pages/auth/ResetPasswordPage';
+import UnauthorizedPage    from '../pages/auth/UnauthorizedPage';
+import ForgotPasswordPage  from '../pages/auth/ForgotPasswordPage';
 import AppLayout        from '../layouts/AppLayout';
 
 import UsersPage        from '../pages/admin/UsersPage';
@@ -23,8 +24,9 @@ import ViewReportsPage    from '../pages/hr/ViewReportsPage';
 import AnnouncementsPage  from '../pages/hr/AnnouncementsPage';
 import EmployeeReportPage from '../pages/hr/EmployeeReportPage';
 
-import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
-import ManagerTasksPage     from '../pages/manager/ManagerTasksPage';
+import ManagerDashboardPage    from '../pages/manager/ManagerDashboardPage';
+import ManagerTasksPage        from '../pages/manager/ManagerTasksPage';
+import ManagerNominationsPage  from '../pages/manager/ManagerNominationsPage';
 
 import EmployeeTasksPage from '../pages/employee/EmployeeTasksPage';
 import FeedbackFormPage  from '../pages/employee/FeedbackFormPage';
@@ -44,10 +46,11 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/login"          element={<LoginPage />} />
-        <Route path="/auth/callback"  element={<AuthCallbackPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/unauthorized"   element={<UnauthorizedPage />} />
+        <Route path="/login"            element={<LoginPage />} />
+        <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
+        <Route path="/auth/callback"    element={<AuthCallbackPage />} />
+        <Route path="/reset-password"   element={<ResetPasswordPage />} />
+        <Route path="/unauthorized"     element={<UnauthorizedPage />} />
         <Route path="/"               element={<RootRedirect />} />
 
         {/* Protected */}
@@ -86,6 +89,8 @@ export default function AppRouter() {
             element={<RequireRole roles={['MANAGER','SUPER_ADMIN']}><ManagerDashboardPage /></RequireRole>} />
           <Route path="/manager/tasks"
             element={<RequireRole roles={['MANAGER','SUPER_ADMIN']}><ManagerTasksPage /></RequireRole>} />
+          <Route path="/manager/nominations"
+            element={<RequireRole roles={['MANAGER','SUPER_ADMIN']}><ManagerNominationsPage /></RequireRole>} />
 
           {/* Employee */}
           <Route path="/employee/tasks"

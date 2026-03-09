@@ -8,7 +8,7 @@ import ErrorCard from '../../components/shared/ErrorCard';
 
 const { Title, Text } = Typography;
 
-const STATUS_COLOR = { PENDING: 'default', IN_PROGRESS: 'blue', DRAFT: 'blue', SUBMITTED: 'green', LOCKED: 'orange' };
+const STATUS_COLOR = { CREATED: 'default', PENDING: 'default', IN_PROGRESS: 'blue', DRAFT: 'blue', SUBMITTED: 'green', LOCKED: 'orange' };
 const TYPE_COLOR   = { SELF: 'purple', MANAGER: 'blue', PEER: 'cyan' };
 
 function deadlineTag(dateStr) {
@@ -39,11 +39,11 @@ export default function EmployeeTasksPage() {
 
   const cycleOptions = useMemo(() => {
     const seen = new Map();
-    for (const t of tasks) { if (t.cycle_id && !seen.has(t.cycle_id)) seen.set(t.cycle_id, t.cycle_name); }
+    for (const t of tasks) { if (t.cycle && !seen.has(t.cycle)) seen.set(t.cycle, t.cycle_name); }
     return [...seen.entries()].map(([id, name]) => ({ value: id, label: name }));
   }, [tasks]);
 
-  const visibleTasks = useMemo(() => (cycleFilter === 'ALL' ? tasks : tasks.filter((t) => t.cycle_id === cycleFilter)), [tasks, cycleFilter]);
+  const visibleTasks = useMemo(() => (cycleFilter === 'ALL' ? tasks : tasks.filter((t) => t.cycle === cycleFilter)), [tasks, cycleFilter]);
 
   const columns = [
     { title: 'Reviewee',     render: (_, r) => `${r.reviewee_first} ${r.reviewee_last}` },
@@ -61,7 +61,7 @@ export default function EmployeeTasksPage() {
     }},
   ];
 
-  const pending   = visibleTasks.filter((t) => ['PENDING','IN_PROGRESS','DRAFT'].includes(t.status));
+  const pending   = visibleTasks.filter((t) => ['CREATED','PENDING','IN_PROGRESS','DRAFT'].includes(t.status));
   const completed = visibleTasks.filter((t) => ['SUBMITTED','LOCKED'].includes(t.status));
 
   if (loading) return <Space direction="vertical" size={16} style={{ width: '100%' }}><Card><Skeleton active paragraph={{ rows: 1 }} /></Card><Card><Skeleton active paragraph={{ rows: 5 }} /></Card></Space>;

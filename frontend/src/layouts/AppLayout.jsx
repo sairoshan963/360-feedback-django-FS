@@ -47,8 +47,9 @@ function navItems(role) {
 
   if (['MANAGER', 'SUPER_ADMIN'].includes(role)) {
     all.push(
-      { key: '/manager/dashboard', icon: <DashboardOutlined />,    label: 'Team Dashboard' },
-      { key: '/manager/tasks',     icon: <CheckSquareOutlined />,  label: 'My Reviews' },
+      { key: '/manager/dashboard',   icon: <DashboardOutlined />,    label: 'Team Dashboard' },
+      { key: '/manager/tasks',       icon: <CheckSquareOutlined />,  label: 'My Reviews' },
+      { key: '/manager/nominations', icon: <UsergroupAddOutlined />, label: 'Approve Nominations' },
     );
   }
 

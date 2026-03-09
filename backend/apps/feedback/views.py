@@ -70,8 +70,8 @@ class CycleReportsListView(APIView):
 # ─── Excel Export (Super Admin) ───────────────────────────────────────────────
 
 class ExportReportView(APIView):
-    """Super Admin: download a single employee's report as Excel."""
-    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    """HR Admin / Super Admin: download a single employee's report as Excel."""
+    permission_classes = [IsAuthenticated, IsHROrManager]
 
     def get(self, request, cycle_id, employee_id):
         buffer = services.export_employee_report_excel(cycle_id, employee_id, request.user)

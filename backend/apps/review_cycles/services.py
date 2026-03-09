@@ -208,20 +208,20 @@ def create_cycle(data, actor):
 
     cycle = ReviewCycle.objects.create(
         name=name,
-        description=data.get('description'),
+        description=data.get('description') or None,
         template=template,
         peer_enabled=peer_enabled,
-        peer_min_count=data.get('peer_min_count'),
-        peer_max_count=data.get('peer_max_count'),
-        peer_threshold=data.get('peer_threshold', 3),
-        peer_anonymity=data.get('peer_anonymity', 'ANONYMOUS'),
-        manager_anonymity=data.get('manager_anonymity', 'TRANSPARENT'),
-        self_anonymity=data.get('self_anonymity', 'TRANSPARENT'),
-        nomination_deadline=data.get('nomination_deadline'),
+        peer_min_count=data.get('peer_min_count') or None,
+        peer_max_count=data.get('peer_max_count') or None,
+        peer_threshold=data.get('peer_threshold') or 3,
+        peer_anonymity=data.get('peer_anonymity') or 'ANONYMOUS',
+        manager_anonymity=data.get('manager_anonymity') or 'TRANSPARENT',
+        self_anonymity=data.get('self_anonymity') or 'TRANSPARENT',
+        nomination_deadline=data.get('nomination_deadline') or None,
         review_deadline=review_deadline,
-        quarter=data.get('quarter'),
-        quarter_year=data.get('quarter_year'),
-        nomination_approval_mode=data.get('nomination_approval_mode', 'AUTO'),
+        quarter=data.get('quarter') or None,
+        quarter_year=data.get('quarter_year') or None,
+        nomination_approval_mode=data.get('nomination_approval_mode') or 'AUTO',
         created_by=actor,
     )
 
@@ -470,7 +470,7 @@ def get_cycle_progress(cycle_id):
         total=Count('id'),
         submitted=Count('id', filter=Q(status='SUBMITTED')),
         locked=Count('id', filter=Q(status='LOCKED')),
-        pending=Count('id', filter=Q(status__in=['PENDING', 'IN_PROGRESS'])),
+        pending=Count('id', filter=Q(status__in=['CREATED', 'PENDING', 'IN_PROGRESS'])),
     )
 
 
@@ -497,6 +497,7 @@ def get_nomination_status(cycle_id):
             'email':      p.user.email,
             'first_name': p.user.first_name,
             'last_name':  p.user.last_name,
+            'department': p.user.department.name if p.user.department_id else None,
             'min_required': min_req,
             'status':     status,
             **agg,
@@ -521,20 +522,21 @@ def get_participant_task_status(cycle_id):
         total     = tasks.count()
         submitted = tasks.filter(status='SUBMITTED').count()
         locked    = tasks.filter(status='LOCKED').count()
-        pending   = tasks.filter(status__in=['PENDING', 'IN_PROGRESS']).count()
+        pending   = tasks.filter(status__in=['CREATED', 'PENDING', 'IN_PROGRESS']).count()
 
-        if total == 0:       overall = 'NO_TASKS'
-        elif pending > 0:    overall = 'PENDING'
+        if total == 0:           overall = 'NO_TASKS'
+        elif pending > 0:        overall = 'PENDING'
         elif submitted == total: overall = 'COMPLETED'
         elif locked == total:    overall = 'MISSED'
-        elif submitted > 0:  overall = 'PARTIAL'
-        else:                overall = 'MISSED'
+        elif submitted > 0:      overall = 'PARTIAL'
+        else:                    overall = 'MISSED'
 
         result.append({
             'user_id':    str(p.user.id),
             'first_name': p.user.first_name,
             'last_name':  p.user.last_name,
             'email':      p.user.email,
+            'department': p.user.department.name if p.user.department_id else None,
             'total': total, 'submitted': submitted,
             'locked': locked, 'pending': pending,
             'overall': overall,

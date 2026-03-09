@@ -21,6 +21,7 @@ def get_my_tasks(user):
             cycle__state__in=['ACTIVE', 'CLOSED', 'RESULTS_RELEASED']
         )
         .select_related('cycle__template', 'reviewee')
+        .prefetch_related('cycle__template__sections__questions')
         .order_by('cycle__review_deadline')
     )
 
@@ -29,6 +30,9 @@ def get_task(task_id, user):
     try:
         task = ReviewerTask.objects.select_related(
             'cycle__template', 'reviewee', 'reviewer'
+        ).prefetch_related(
+            'cycle__template__sections__questions',
+            'response__answers__question',
         ).get(id=task_id)
     except ReviewerTask.DoesNotExist:
         raise NotFound('Task not found')
@@ -42,7 +46,7 @@ def get_task(task_id, user):
 def save_draft(task_id, user, answers):
     task = get_task(task_id, user)
 
-    if task.status not in ['PENDING', 'IN_PROGRESS']:
+    if task.status not in ['CREATED', 'PENDING', 'IN_PROGRESS']:
         raise ValidationError('Task is already submitted or locked')
 
     if task.cycle.state != 'ACTIVE':

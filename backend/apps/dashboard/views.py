@@ -34,7 +34,7 @@ class HrDashboardView(APIView):
                 total=Count('id'),
                 submitted=Count('id', filter=Q(status='SUBMITTED')),
                 locked=Count('id', filter=Q(status='LOCKED')),
-                pending=Count('id', filter=Q(status__in=['PENDING', 'IN_PROGRESS'])),
+                pending=Count('id', filter=Q(status__in=['CREATED', 'PENDING', 'IN_PROGRESS'])),
             )
         )
 
@@ -68,15 +68,29 @@ class HrDashboardView(APIView):
             )
         )
 
+        # Remap Django ORM annotation field name to clean 'department' key for frontend
+        clean_dept_scores = [
+            {
+                'department':        row.get('reviewee__department__name') or 'Unknown',
+                'avg_overall':       row.get('avg_overall'),
+                'avg_peer':          row.get('avg_peer'),
+                'avg_manager':       row.get('avg_manager'),
+                'participant_count': row.get('participant_count'),
+            }
+            for row in dept_scores
+        ]
+
         return Response({
             'success': True,
-            'cycle_id':          str(cycle_id),
-            'cycle_name':        cycle.name,
-            'cycle_state':       cycle.state,
-            'participation_rate': participation_rate,
-            'submission_stats':  submission_stats,
-            'nomination_stats':  nomination_stats,
-            'department_scores': dept_scores,
+            'dashboard': {
+                'cycle_id':           str(cycle_id),
+                'cycle_name':         cycle.name,
+                'cycle_state':        cycle.state,
+                'participation_rate': participation_rate,
+                'submission_stats':   submission_stats,
+                'nomination_stats':   nomination_stats,
+                'department_scores':  clean_dept_scores,
+            },
         })
 
 
@@ -101,7 +115,7 @@ class ManagerDashboardView(APIView):
             )
 
         if not direct_ids:
-            return Response({'success': True, 'cycle_id': str(cycle_id), 'team': []})
+            return Response({'success': True, 'dashboard': {'cycle_id': str(cycle_id), 'cycle_name': cycle.name, 'team': []}})
 
         from apps.users.models import User
         directs = User.objects.filter(id__in=direct_ids, status='ACTIVE')
@@ -131,10 +145,12 @@ class ManagerDashboardView(APIView):
             stat = task_stats.get(uid, {'total_tasks': 0, 'submitted': 0})
             scr  = scores_map.get(uid)
             team.append({
+                'id':         uid,
                 'user_id':    uid,
                 'first_name': emp.first_name,
                 'last_name':  emp.last_name,
                 'email':      emp.email,
+                'department': emp.department.name if emp.department_id else None,
                 'task_completion': {
                     'total_tasks': stat.get('total_tasks', 0),
                     'submitted':   stat.get('submitted', 0),
@@ -148,11 +164,13 @@ class ManagerDashboardView(APIView):
             })
 
         return Response({
-            'success':     True,
-            'cycle_id':    str(cycle_id),
-            'cycle_name':  cycle.name,
-            'cycle_state': cycle.state,
-            'team':        team,
+            'success': True,
+            'dashboard': {
+                'cycle_id':    str(cycle_id),
+                'cycle_name':  cycle.name,
+                'cycle_state': cycle.state,
+                'team':        team,
+            },
         })
 
 
@@ -187,7 +205,7 @@ class SummaryStatsView(APIView):
         total_users    = User.objects.filter(status='ACTIVE').count()
         total_cycles   = ReviewCycle.objects.count()
         active_cycles  = ReviewCycle.objects.filter(state='ACTIVE').count()
-        pending_tasks  = ReviewerTask.objects.filter(status__in=['PENDING', 'IN_PROGRESS']).count()
+        pending_tasks  = ReviewerTask.objects.filter(status__in=['CREATED', 'PENDING', 'IN_PROGRESS']).count()
 
         return Response({
             'success': True,
