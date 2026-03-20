@@ -379,7 +379,7 @@ def close_cycle(cycle_id, actor):
 
         from apps.reviewer_workflow.models import ReviewerTask
         ReviewerTask.objects.filter(
-            cycle=cycle, status__in=['PENDING', 'IN_PROGRESS']
+            cycle=cycle, status__in=['CREATED', 'PENDING', 'IN_PROGRESS']
         ).update(status='LOCKED')
 
         cycle.state = 'CLOSED'
@@ -451,7 +451,7 @@ def override_cycle(cycle_id, target_state, reason, actor):
         if target_state in ['CLOSED', 'RESULTS_RELEASED', 'ARCHIVED']:
             from apps.reviewer_workflow.models import ReviewerTask
             ReviewerTask.objects.filter(
-                cycle=cycle, status__in=['PENDING', 'IN_PROGRESS']
+                cycle=cycle, status__in=['CREATED', 'PENDING', 'IN_PROGRESS']
             ).update(status='LOCKED')
 
         cycle.state = target_state
