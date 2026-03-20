@@ -107,12 +107,12 @@ export default function CreateCyclePage() {
           <Input placeholder="e.g. Q1 2026 Performance Review" />
         </Form.Item>
         <Space wrap>
-          <Form.Item name="quarter" label="Quarter (Optional)">
+          <Form.Item name="quarter" label="Quarter">
             <Select placeholder="Select quarter" allowClear style={{ width: 120 }}>
               {['Q1','Q2','Q3','Q4'].map((q) => <Option key={q} value={q}>{q}</Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="quarter_year" label="Year (Optional)">
+          <Form.Item name="quarter_year" label="Year">
             <InputNumber placeholder="2025" min={2020} max={2030} style={{ width: 120 }} />
           </Form.Item>
         </Space>
