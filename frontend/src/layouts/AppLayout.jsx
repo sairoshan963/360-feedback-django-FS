@@ -196,7 +196,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      <Layout style={{ marginLeft: contentLeft, height: '100vh', overflow: 'hidden', transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: contentLeft, minHeight: '100vh', overflow: 'auto', transition: 'margin-left 0.2s' }}>
         <Header style={{
           background: '#fff', padding: '0 16px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -243,13 +243,7 @@ export default function AppLayout() {
           <AnnouncementBanner />
         </div>
 
-        <Content style={{
-          flex: 1,
-          overflow: 'auto',
-          minHeight: 0,
-          marginTop: 88,
-          padding: isMobile ? 12 : 24,
-        }}>
+        <Content style={{ margin: isMobile ? 12 : 24, minHeight: 280, marginTop: 88 }}>
           <Outlet />
         </Content>
         <FeedbackButton open={reportOpen} onClose={() => setReportOpen(false)} />
