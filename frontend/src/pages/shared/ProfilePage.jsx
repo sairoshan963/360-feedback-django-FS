@@ -173,7 +173,7 @@ export default function ProfilePage() {
                   <Col span={8}><Form.Item name="middle_name" label="Middle Name"><Input placeholder="Middle name" /></Form.Item></Col>
                   <Col span={8}><Form.Item name="last_name"  label="Last Name"  rules={[{ required: true, message: 'Required' }]}><Input placeholder="Last name" /></Form.Item></Col>
                 </Row>
-                <Form.Item name="display_name" label="Display Name" help="Short name shown across the app. Leave blank to use your full name.">
+                <Form.Item name="display_name" label="Display Name">
                   <Input placeholder="e.g. Rama, Teja K" maxLength={100} />
                 </Form.Item>
                 <Form.Item name="job_title" label="Job Title"><Input placeholder="e.g. Senior Engineer, Product Manager" disabled /></Form.Item>
