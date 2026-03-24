@@ -207,13 +207,20 @@ class UserBulkImportView(APIView):
 
         content = file.read().decode('utf-8-sig')  # handle BOM from Excel exports
         reader  = csv.DictReader(io.StringIO(content))
+
+        # ── Row limit: prevent DoS via giant CSV ──────────────────────────────
+        MAX_ROWS = 5000
+        all_rows = list(reader)
+        if len(all_rows) > MAX_ROWS:
+            return Response({'success': False, 'error': f'File exceeds maximum row limit of {MAX_ROWS}.'}, status=400)
+
         created = 0
         skipped = 0
         updated = 0
         errors  = []
         manager_assignments = []  # defer until after all users created
 
-        for i, row in enumerate(reader, start=2):
+        for i, row in enumerate(all_rows, start=2):
             email = (row.get('email') or '').strip().lower()
             if not email:
                 errors.append({'row': i, 'error': 'email is required'})

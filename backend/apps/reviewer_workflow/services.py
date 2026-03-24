@@ -204,12 +204,13 @@ def decide_nomination(nomination_id, status, actor, rejection_note=None):
     if status not in ['APPROVED', 'REJECTED']:
         raise ValidationError('Status must be APPROVED or REJECTED')
 
-    # Manager scope check
+    if rejection_note and len(rejection_note) > 2000:
+        raise ValidationError('Rejection note cannot exceed 2000 characters')
+
+    # Manager scope check — use explicit DB query to avoid try/except swallowing PermissionDenied
     if actor.role == 'MANAGER':
-        try:
-            if nomination.reviewee.manager_relation.manager != actor:
-                raise PermissionDenied('You can only decide on nominations for your direct reports')
-        except Exception:
+        from apps.users.models import OrgHierarchy
+        if not OrgHierarchy.objects.filter(employee=nomination.reviewee, manager=actor).exists():
             raise PermissionDenied('You can only decide on nominations for your direct reports')
 
     nomination.status         = status

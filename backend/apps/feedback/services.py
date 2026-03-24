@@ -245,10 +245,8 @@ def get_employee_report(cycle_id, employee_id, viewer):
 
     # Manager scope check — can only view direct reports
     if viewer.role == 'MANAGER':
-        try:
-            if employee.manager_relation.manager != viewer:
-                raise PermissionDenied('Employee is not in your team')
-        except Exception:
+        from apps.users.models import OrgHierarchy
+        if not OrgHierarchy.objects.filter(employee=employee, manager=viewer).exists():
             raise PermissionDenied('Employee is not in your team')
 
     try:
