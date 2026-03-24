@@ -30,16 +30,42 @@ def submit_feedback(task_id, user, answers):
     if not answers:
         raise ValidationError('answers array is required')
 
-    # Validate required questions are answered
-    required_q_ids = set(
-        str(q.id) for q in TemplateQuestion.objects.filter(
-            section__template=task.cycle.template, is_required=True
+    # Load all questions for this template (used for required + scale validation)
+    all_questions = {
+        str(q.id): q for q in TemplateQuestion.objects.filter(
+            section__template=task.cycle.template
         )
-    )
+    }
+
+    # Validate required questions are answered
+    required_q_ids = {qid for qid, q in all_questions.items() if q.is_required}
     answered_q_ids = {str(a['question_id']) for a in answers}
     missing = required_q_ids - answered_q_ids
     if missing:
         raise ValidationError(f'Missing required answers for {len(missing)} question(s)')
+
+    # Validate answers are for questions that belong to this template
+    unknown = answered_q_ids - set(all_questions.keys())
+    if unknown:
+        raise ValidationError(f'Answer contains unknown question IDs')
+
+    # Validate rating values are within each question's defined scale
+    scale_errors = []
+    for a in answers:
+        qid = str(a['question_id'])
+        q = all_questions.get(qid)
+        if q and q.type == 'RATING' and a.get('rating_value') is not None:
+            rv = float(a['rating_value'])
+            if q.rating_scale_min is not None and rv < q.rating_scale_min:
+                scale_errors.append(
+                    f'Rating {rv} is below minimum {q.rating_scale_min} for question "{q.question_text[:50]}"'
+                )
+            if q.rating_scale_max is not None and rv > q.rating_scale_max:
+                scale_errors.append(
+                    f'Rating {rv} exceeds maximum {q.rating_scale_max} for question "{q.question_text[:50]}"'
+                )
+    if scale_errors:
+        raise ValidationError(scale_errors)
 
     with transaction.atomic():
         # Remove any existing response (re-submission guard)
@@ -79,37 +105,40 @@ def aggregate_cycle(cycle):
     """
     Calculate overall / self / manager / peer scores for every participant.
     Idempotent — safe to run multiple times (uses update_or_create).
+    Uses a single aggregation query per reviewee instead of N+1 per reviewer_type.
     """
+    from django.db.models import Avg, Q
+
     participants = CycleParticipant.objects.filter(cycle=cycle).select_related('user')
 
     for participant in participants:
         reviewee = participant.user
 
-        def avg_score(reviewer_type):
-            tasks = ReviewerTask.objects.filter(
-                cycle=cycle, reviewee=reviewee,
-                reviewer_type=reviewer_type, status='SUBMITTED'
+        # One query: get all averages for this reviewee broken down by reviewer_type
+        scores = (
+            FeedbackAnswer.objects
+            .filter(
+                response__task__cycle=cycle,
+                response__task__reviewee=reviewee,
+                response__task__status='SUBMITTED',
+                rating_value__isnull=False,
             )
-            responses = FeedbackResponse.objects.filter(task__in=tasks)
-            result = FeedbackAnswer.objects.filter(
-                response__in=responses, rating_value__isnull=False
-            ).aggregate(avg=Avg('rating_value'))
-            return result['avg']
-
-        all_tasks     = ReviewerTask.objects.filter(cycle=cycle, reviewee=reviewee, status='SUBMITTED')
-        all_responses = FeedbackResponse.objects.filter(task__in=all_tasks)
-        overall_avg   = FeedbackAnswer.objects.filter(
-            response__in=all_responses, rating_value__isnull=False
-        ).aggregate(avg=Avg('rating_value'))['avg']
+            .aggregate(
+                overall=Avg('rating_value'),
+                self_score=Avg('rating_value', filter=Q(response__task__reviewer_type='SELF')),
+                manager_score=Avg('rating_value', filter=Q(response__task__reviewer_type='MANAGER')),
+                peer_score=Avg('rating_value', filter=Q(response__task__reviewer_type='PEER')),
+            )
+        )
 
         AggregatedResult.objects.update_or_create(
             cycle=cycle,
             reviewee=reviewee,
             defaults={
-                'overall_score': overall_avg,
-                'self_score':    avg_score('SELF'),
-                'manager_score': avg_score('MANAGER'),
-                'peer_score':    avg_score('PEER'),
+                'overall_score': scores['overall'],
+                'self_score':    scores['self_score'],
+                'manager_score': scores['manager_score'],
+                'peer_score':    scores['peer_score'],
             }
         )
 

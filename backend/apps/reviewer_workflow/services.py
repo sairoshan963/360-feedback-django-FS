@@ -93,6 +93,17 @@ def submit_nominations(cycle_id, user, peer_ids):
     if str(user.id) in peer_ids:
         raise ValidationError('You cannot nominate yourself')
 
+    # All nominated peers must be participants in this cycle
+    participant_ids = set(
+        str(uid) for uid in
+        CycleParticipant.objects.filter(cycle=cycle).values_list('user_id', flat=True)
+    )
+    invalid_peers = [pid for pid in peer_ids if pid not in participant_ids]
+    if invalid_peers:
+        raise ValidationError(
+            f'{len(invalid_peers)} nominated peer(s) are not participants in this cycle'
+        )
+
     if cycle.peer_max_count and len(peer_ids) > cycle.peer_max_count:
         raise ValidationError(f'You can nominate at most {cycle.peer_max_count} peers')
 

@@ -317,12 +317,27 @@ def add_participants(cycle_id, user_ids, actor):
         raise ValidationError('Participants can only be added in DRAFT or NOMINATION state')
 
     from apps.users.models import User
+    # Only add ACTIVE users — inactive/suspended users cannot participate
+    active_ids = set(
+        str(uid) for uid in
+        User.objects.filter(id__in=user_ids, status='ACTIVE').values_list('id', flat=True)
+    )
+    inactive_count = len(user_ids) - len(active_ids)
+
     participants = [
         CycleParticipant(cycle=cycle, user_id=uid)
-        for uid in user_ids
+        for uid in user_ids if str(uid) in active_ids
     ]
     CycleParticipant.objects.bulk_create(participants, ignore_conflicts=True)
-    return CycleParticipant.objects.filter(cycle=cycle).select_related('user')
+
+    result = CycleParticipant.objects.filter(cycle=cycle).select_related('user')
+    if inactive_count > 0:
+        import logging
+        logging.getLogger(__name__).warning(
+            'add_participants: skipped %d inactive/suspended user(s) for cycle %s',
+            inactive_count, cycle_id
+        )
+    return result
 
 
 def get_participants(cycle_id):

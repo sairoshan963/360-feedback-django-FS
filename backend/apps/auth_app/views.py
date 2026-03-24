@@ -4,8 +4,17 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    scope = 'login'
+
+
+class PasswordResetRateThrottle(AnonRateThrottle):
+    scope = 'password_reset'
 
 from . import services
 from .serializers import (
@@ -23,6 +32,7 @@ from .serializers import (
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes   = [LoginRateThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -166,6 +176,10 @@ class AvatarUploadView(APIView):
         if ext not in allowed:
             return Response({'success': False, 'error': 'Only JPG, PNG, WEBP allowed'}, status=400)
 
+        MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+        if image.size > MAX_SIZE:
+            return Response({'success': False, 'error': 'Avatar file too large. Maximum size is 5 MB.'}, status=400)
+
         url = services.upload_avatar(request.user, image)
         return Response({'success': True, 'avatar_url': url})
 
@@ -174,6 +188,7 @@ class AvatarUploadView(APIView):
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes   = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
