@@ -236,7 +236,7 @@ export default function AuditPage() {
           dataSource={logs}
           loading={loading}
           size="small"
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} entries` }}
+          pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} entries` }}
           scroll={{ x: 900 }}
           rowClassName={(r) => r.action_type === 'OVERRIDE_ACTION' || r.action_type === 'IDENTITY_ACCESS'
             ? 'ant-table-row-danger'

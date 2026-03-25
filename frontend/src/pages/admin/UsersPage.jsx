@@ -146,7 +146,7 @@ export default function UsersPage() {
       </div>
 
       <Table rowKey="id" columns={columns} dataSource={users} loading={loading}
-        pagination={{ pageSize: 20, showTotal: (total) => `${total} users` }}
+        pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} users` }}
         scroll={{ x: true }} />
 
       <Modal title={modal.user ? 'Edit User' : 'Create User'} open={modal.open} onOk={handleSave} onCancel={() => setModal({ open: false, user: null })} okText="Save" destroyOnClose>

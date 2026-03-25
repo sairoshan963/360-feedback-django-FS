@@ -109,7 +109,7 @@ export default function AnnouncementsPage() {
         <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
           Active announcements appear as a banner to all logged-in users. Users can dismiss them individually.
         </Text>
-        <Table rowKey="id" columns={columns} dataSource={items} loading={loading} pagination={{ pageSize: 20, showTotal: (total) => `${total} announcements` }} scroll={{ x: 900 }} locale={{ emptyText: 'No announcements yet.' }} />
+        <Table rowKey="id" columns={columns} dataSource={items} loading={loading} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} announcements` }} scroll={{ x: 900 }} locale={{ emptyText: 'No announcements yet.' }} />
       </Card>
 
       <Modal open={open} title={<Space><BellOutlined style={{ color: '#1677ff' }} />New Announcement</Space>} onCancel={() => { setOpen(false); form.resetFields(); }} footer={null} width={520}>

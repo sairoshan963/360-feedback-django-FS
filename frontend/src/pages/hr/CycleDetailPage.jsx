@@ -393,7 +393,7 @@ export default function CycleDetailPage() {
             <Table
               rowKey="user_id"
               size="small"
-              pagination={{ pageSize: 20, showTotal: (total) => `${total} participants` }}
+              pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} participants` }}
               dataSource={nominationStatus}
               columns={[
                 {
@@ -471,7 +471,7 @@ export default function CycleDetailPage() {
             <Table
               rowKey="user_id"
               size="small"
-              pagination={{ pageSize: 20, showTotal: (total) => `${total} participants` }}
+              pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} participants` }}
               dataSource={participantStatus.filter((p) =>
                 !statusSearch.trim() ||
                 `${p.first_name} ${p.last_name} ${p.email}`.toLowerCase()
@@ -537,7 +537,7 @@ export default function CycleDetailPage() {
               rowKey="id"
               size="small"
               dataSource={filtered}
-              pagination={{ pageSize: 20, showTotal: (total) => `${total} participants` }}
+              pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} participants` }}
               columns={[
                 { title: 'Name',  render: (_, r) => `${r.first_name} ${r.last_name}` },
                 { title: 'Email', dataIndex: 'email' },
@@ -665,7 +665,7 @@ export default function CycleDetailPage() {
                 <Table
                   rowKey="id"
                   size="small"
-                  pagination={{ pageSize: 20, showTotal: (total) => `${total} nominations` }}
+                  pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} nominations` }}
                   dataSource={resolved}
                   columns={[
                     { title: 'Reviewee',       render: (_, r) => `${r.reviewee_first} ${r.reviewee_last}` },

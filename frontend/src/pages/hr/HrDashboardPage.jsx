@@ -164,7 +164,7 @@ export default function HrDashboardPage() {
                 <Table
                   rowKey="id"
                   size="small"
-                  pagination={{ pageSize: 20, showTotal: (t) => `${t} participants` }}
+                  pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (t) => `${t} participants` }}
                   dataSource={filteredParticipants}
                   columns={[
                     {

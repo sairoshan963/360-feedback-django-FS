@@ -85,7 +85,7 @@ export default function CyclesPage() {
           <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/hr/cycles/new')}>New Cycle</Button>
         </Space>
       </Space>
-      <Table rowKey="id" columns={columns} dataSource={cycles} loading={loading} pagination={{ pageSize: 20, showTotal: (total) => `${total} cycles` }} />
+      <Table rowKey="id" columns={columns} dataSource={cycles} loading={loading} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} cycles` }} />
     </Card>
   );
 }

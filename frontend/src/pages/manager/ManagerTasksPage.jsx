@@ -101,12 +101,12 @@ export default function ManagerTasksPage() {
       )}
 
       <Card title={`Pending (${pending.length})`}>
-        <Table rowKey="id" columns={columns} dataSource={pending} loading={loading} pagination={{ pageSize: 20, showTotal: (total) => `${total} tasks` }} size="small" />
+        <Table rowKey="id" columns={columns} dataSource={pending} loading={loading} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} tasks` }} size="small" />
       </Card>
 
       {completed.length > 0 && (
         <Card title={`Completed (${completed.length})`}>
-          <Table rowKey="id" columns={columns} dataSource={completed} pagination={{ pageSize: 20, showTotal: (total) => `${total} tasks` }} size="small" />
+          <Table rowKey="id" columns={columns} dataSource={completed} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} tasks` }} size="small" />
         </Card>
       )}
     </Space>

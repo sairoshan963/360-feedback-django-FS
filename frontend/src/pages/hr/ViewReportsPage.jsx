@@ -93,7 +93,7 @@ export default function ViewReportsPage() {
             </Button>
           }
         >
-          <Table rowKey="id" columns={columns} dataSource={participants} loading={loading} pagination={{ pageSize: 20, showTotal: (total) => `${total} participants` }} />
+          <Table rowKey="id" columns={columns} dataSource={participants} loading={loading} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} participants` }} />
         </Card>
       )}
     </Space>

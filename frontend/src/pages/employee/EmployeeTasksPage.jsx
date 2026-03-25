@@ -91,13 +91,13 @@ export default function EmployeeTasksPage() {
         {pending.length === 0 ? (
           <Empty image={<CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a' }} />} imageStyle={{ height: 56 }} description={<Space direction="vertical" size={2}><Text strong>All caught up!</Text><Text type="secondary">You have no pending feedback tasks.</Text></Space>} />
         ) : (
-          <Table rowKey="id" columns={columns} dataSource={pending} pagination={{ pageSize: 20, showTotal: (total) => `${total} tasks` }} size="small" />
+          <Table rowKey="id" columns={columns} dataSource={pending} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} tasks` }} size="small" />
         )}
       </Card>
 
       {completed.length > 0 && (
         <Card title={<Space><CheckCircleOutlined style={{ color: '#52c41a' }} /><span>Completed ({completed.length})</span></Space>}>
-          <Table rowKey="id" columns={columns} dataSource={completed} pagination={{ pageSize: 20, showTotal: (total) => `${total} tasks` }} size="small" />
+          <Table rowKey="id" columns={columns} dataSource={completed} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} tasks` }} size="small" />
         </Card>
       )}
 

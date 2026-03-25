@@ -77,7 +77,7 @@ export default function ManagerDashboardPage() {
             <Col span={8}><Card loading={loading}><Statistic title="Avg Team Score" value={avgTeamScore} suffix={avgTeamScore !== '—' ? '/ 5' : ''} /></Card></Col>
           </Row>
           <Card title="Direct Reports" loading={loading}>
-            {team.length > 0 ? <Table rowKey="id" columns={teamCols} dataSource={team} pagination={{ pageSize: 20, showTotal: (total) => `${total} total` }} size="small" /> : <Empty description="No direct reports found in this cycle" />}
+            {team.length > 0 ? <Table rowKey="id" columns={teamCols} dataSource={team} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `${total} total` }} size="small" /> : <Empty description="No direct reports found in this cycle" />}
           </Card>
         </>
       )}
