@@ -48,7 +48,7 @@ export const getManagerDashboard = (cycleId) => {
 
 export const getOrgHeatmap = () => {
   if (USE_MOCK) return delay({ success: true, heatmap: [] });
-  return api.get('/dashboard/org/heatmap/');
+  return api.get('/dashboard/heatmap/');
 };
 
 export const getSummaryStats = () => {
