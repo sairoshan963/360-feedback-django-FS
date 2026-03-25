@@ -199,7 +199,7 @@ export default function ManagerNominationsPage() {
               rowKey="id"
               columns={columns}
               dataSource={filtered}
-              pagination={{ pageSize: 15 }}
+              pagination={{ pageSize: 20, showTotal: (total) => `${total} total` }}
               size="small"
             />
           )}

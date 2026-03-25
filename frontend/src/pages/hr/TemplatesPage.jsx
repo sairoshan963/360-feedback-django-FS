@@ -93,7 +93,7 @@ export default function TemplatesPage() {
         <Title level={4} style={{ margin: 0 }}>Feedback Templates</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/hr/templates/new')}>New Template</Button>
       </Space>
-      <Table rowKey="id" columns={columns} dataSource={templates} loading={loading} pagination={{ pageSize: 10 }}
+      <Table rowKey="id" columns={columns} dataSource={templates} loading={loading} pagination={{ pageSize: 20, showTotal: (total) => `${total} templates` }}
         expandable={{ expandedRowRender, onExpand: (exp, record) => { if (exp) loadDetail(record.id); } }}
       />
     </Card>
