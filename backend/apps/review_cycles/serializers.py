@@ -33,16 +33,20 @@ class TemplateSerializer(serializers.ModelSerializer):
 
 class TemplateListSerializer(serializers.ModelSerializer):
     """Lightweight serializer — no sections. Used in lists."""
-    creator_name = serializers.SerializerMethodField()
+    creator_name  = serializers.SerializerMethodField()
+    section_count = serializers.SerializerMethodField()
 
     class Meta:
         model  = Template
-        fields = ['id', 'name', 'description', 'is_active', 'creator_name', 'created_at']
+        fields = ['id', 'name', 'description', 'is_active', 'creator_name', 'created_at', 'section_count']
 
     def get_creator_name(self, obj):
         if obj.created_by:
             return obj.created_by.get_full_name()
         return None
+
+    def get_section_count(self, obj):
+        return obj.sections.count()
 
 
 class ReviewCycleSerializer(serializers.ModelSerializer):
