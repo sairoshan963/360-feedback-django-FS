@@ -62,8 +62,8 @@ class TestDashboard:
         _login(client, hr)
         resp = client.get(f'/api/v1/dashboard/hr/{cycle.id}/')
         assert resp.status_code == 200
-        assert 'participation_rate' in resp.data
-        assert 'submission_stats' in resp.data
+        assert 'participation_rate' in resp.data['dashboard']
+        assert 'submission_stats' in resp.data['dashboard']
 
     def test_manager_can_see_team_dashboard(self, client, dept):
         mgr = _create_user('dash_mgr@test.com', 'MANAGER', dept)
@@ -72,7 +72,7 @@ class TestDashboard:
         _login(client, mgr)
         resp = client.get(f'/api/v1/dashboard/manager/{cycle.id}/')
         assert resp.status_code == 200
-        assert 'team' in resp.data
+        assert 'team' in resp.data['dashboard']
 
     def test_employee_cannot_see_hr_dashboard(self, client, dept):
         emp = _create_user('dash_emp3@test.com', 'EMPLOYEE', dept)

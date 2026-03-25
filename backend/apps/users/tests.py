@@ -87,8 +87,8 @@ class TestUpdateUser:
         _login(client, sa)
         resp = client.delete(f'/api/v1/users/{emp.id}/')
         assert resp.status_code == 200
-        emp.refresh_from_db()
-        assert emp.status == 'INACTIVE'
+        from apps.users.models import User as U
+        assert not U.objects.filter(id=emp.id).exists()
 
     def test_super_admin_can_update_role(self, client, dept):
         sa  = _make('sa5@test.com', 'SUPER_ADMIN', dept)

@@ -38,7 +38,7 @@ def _make_template(client):
             'title': 'Core Competencies',
             'display_order': 1,
             'questions': [
-                {'question_text': 'How well does this person communicate?', 'type': 'RATING', 'display_order': 1, 'is_required': True},
+                {'question_text': 'How well does this person communicate?', 'type': 'RATING', 'display_order': 1, 'is_required': True, 'rating_scale_min': 1, 'rating_scale_max': 5},
                 {'question_text': 'Describe their strengths.', 'type': 'TEXT', 'display_order': 2, 'is_required': False},
             ]
         }]

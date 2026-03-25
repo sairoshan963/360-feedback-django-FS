@@ -164,7 +164,7 @@ def submit_nominations(cycle_id, user, peer_ids):
                      'nominated_by': user.get_full_name(),
                      'cycle': cycle.name,
                      'peer_count': len(peer_ids),
-                     'status': status,
+                     'status': new_status,
                  })
 
     return PeerNomination.objects.filter(cycle=cycle, reviewee=user).select_related('peer')
