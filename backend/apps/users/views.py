@@ -1,6 +1,7 @@
 import csv
 import io
 
+from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -220,76 +221,77 @@ class UserBulkImportView(APIView):
         errors  = []
         manager_assignments = []  # defer until after all users created
 
-        for i, row in enumerate(all_rows, start=2):
-            email = (row.get('email') or '').strip().lower()
-            if not email:
-                errors.append({'row': i, 'error': 'email is required'})
-                continue
+        with transaction.atomic():
+            for i, row in enumerate(all_rows, start=2):
+                email = (row.get('email') or '').strip().lower()
+                if not email:
+                    errors.append({'row': i, 'error': 'email is required'})
+                    continue
 
-            # Department — auto-create
-            dept_name = (row.get('department') or '').strip()
-            dept = None
-            if dept_name:
-                dept, _ = Department.objects.get_or_create(name=dept_name)
+                # Department — auto-create
+                dept_name = (row.get('department') or '').strip()
+                dept = None
+                if dept_name:
+                    dept, _ = Department.objects.get_or_create(name=dept_name)
 
-            role = (row.get('role') or 'EMPLOYEE').strip().upper()
-            if role not in ['SUPER_ADMIN', 'HR_ADMIN', 'MANAGER', 'EMPLOYEE']:
-                role = 'EMPLOYEE'
+                role = (row.get('role') or 'EMPLOYEE').strip().upper()
+                if role not in ['SUPER_ADMIN', 'HR_ADMIN', 'MANAGER', 'EMPLOYEE']:
+                    role = 'EMPLOYEE'
 
-            manager_email = (row.get('manager_email') or '').strip().lower()
+                manager_email = (row.get('manager_email') or '').strip().lower()
 
-            if User.objects.filter(email=email).exists():
-                # Update department if provided and not already set
-                existing = User.objects.get(email=email)
-                changed = False
-                if dept and not existing.department_id:
-                    existing.department = dept
-                    changed = True
-                if role and existing.role != role:
-                    existing.role = role
-                    changed = True
-                if changed:
-                    existing.save()
-                    updated += 1
-                else:
-                    skipped += 1
+                if User.objects.filter(email=email).exists():
+                    # Update department if provided and not already set
+                    existing = User.objects.get(email=email)
+                    changed = False
+                    if dept and not existing.department_id:
+                        existing.department = dept
+                        changed = True
+                    if role and existing.role != role:
+                        existing.role = role
+                        changed = True
+                    if changed:
+                        existing.save()
+                        updated += 1
+                    else:
+                        skipped += 1
+                    if manager_email:
+                        manager_assignments.append((email, manager_email))
+                    continue
+
+                user = User(
+                    email=email,
+                    first_name=(row.get('first_name') or '').strip(),
+                    middle_name=(row.get('middle_name') or '').strip() or None,
+                    last_name=(row.get('last_name') or '').strip(),
+                    job_title=(row.get('job_title') or '').strip() or None,
+                    role=role,
+                    status='ACTIVE',
+                    department=dept,
+                )
+                user.set_unusable_password()
+                user.save()
+                created += 1
+
                 if manager_email:
                     manager_assignments.append((email, manager_email))
-                continue
 
-            user = User(
-                email=email,
-                first_name=(row.get('first_name') or '').strip(),
-                middle_name=(row.get('middle_name') or '').strip() or None,
-                last_name=(row.get('last_name') or '').strip(),
-                job_title=(row.get('job_title') or '').strip() or None,
-                role=role,
-                status='ACTIVE',
-                department=dept,
-            )
-            user.set_unusable_password()
-            user.save()
-            created += 1
-
-            if manager_email:
-                manager_assignments.append((email, manager_email))
-
-        # ── 2nd pass: assign managers (all users now exist) ──────────────
-        manager_linked = 0
-        manager_errors = []
-        for emp_email, mgr_email in manager_assignments:
-            if emp_email == mgr_email:
-                manager_errors.append(f'{emp_email}: cannot be their own manager')
-                continue
-            try:
-                emp = User.objects.get(email=emp_email)
-                mgr = User.objects.get(email=mgr_email)
-                OrgHierarchy.objects.update_or_create(
-                    employee=emp, defaults={'manager': mgr}
-                )
-                manager_linked += 1
-            except User.DoesNotExist:
-                manager_errors.append(f'{emp_email} → manager {mgr_email} not found')
+            # ── 2nd pass: assign managers (all users now exist) ──────────────
+            manager_linked = 0
+            manager_errors = []
+            for emp_email, mgr_email in manager_assignments:
+                if emp_email == mgr_email:
+                    manager_errors.append(f'{emp_email}: cannot be their own manager')
+                    continue
+                try:
+                    emp = User.objects.get(email=emp_email)
+                    mgr = User.objects.get(email=mgr_email)
+                    OrgHierarchy.objects.update_or_create(
+                        employee=emp, defaults={'manager': mgr}
+                    )
+                    manager_linked += 1
+                except User.DoesNotExist:
+                    manager_errors.append(f'{emp_email} → manager {mgr_email} not found')
 
         from apps.audit.models import AuditLog
         AuditLog.log(

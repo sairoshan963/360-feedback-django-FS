@@ -114,6 +114,7 @@ export default function FeedbackFormPage() {
   }, [task, taskId, answers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
+    if (submitting) return;  // prevent double-submit from rapid Popconfirm clicks
     const sections = task?.template?.sections || [];
     for (const sec of sections) {
       for (const q of (sec.questions || []).filter(Boolean)) {

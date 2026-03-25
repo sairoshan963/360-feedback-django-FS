@@ -100,7 +100,7 @@ class CycleParticipantsView(APIView):
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsAuthenticated(), IsHRAdmin()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), IsHROrManager()]
 
     def get(self, request, pk):
         participants = services.get_participants(pk)

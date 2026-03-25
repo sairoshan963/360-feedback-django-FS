@@ -181,7 +181,10 @@ def update_template(template_id, name, sections, actor):
 # ─── Cycles ───────────────────────────────────────────────────────────────────
 
 def list_cycles(state=None):
-    qs = ReviewCycle.objects.select_related('template', 'created_by')
+    from django.db.models import Count
+    qs = ReviewCycle.objects.select_related('template', 'created_by').annotate(
+        participant_count=Count('participations', distinct=True)
+    )
     if state:
         valid = [s[0] for s in ReviewCycle.STATE_CHOICES]
         if state not in valid:
@@ -576,28 +579,40 @@ def get_nomination_status(cycle_id):
     from apps.reviewer_workflow.models import PeerNomination
     from django.db.models import Count, Q
 
-    participants = CycleParticipant.objects.filter(cycle=cycle).select_related('user')
-    result = []
+    participants = CycleParticipant.objects.filter(cycle=cycle).select_related('user__department')
 
-    for p in participants:
-        agg = PeerNomination.objects.filter(cycle=cycle, reviewee=p.user).aggregate(
+    # Single aggregated query for all participants — avoids N queries
+    nomination_stats = (
+        PeerNomination.objects.filter(cycle=cycle)
+        .values('reviewee_id')
+        .annotate(
             nominated=Count('id'),
             approved=Count('id', filter=Q(status='APPROVED')),
             pending=Count('id', filter=Q(status='PENDING')),
             rejected=Count('id', filter=Q(status='REJECTED')),
         )
+    )
+    stats_map = {str(s['reviewee_id']): s for s in nomination_stats}
+
+    result = []
+    min_req = cycle.peer_min_count or 0
+    for p in participants:
+        uid = str(p.user.id)
+        agg = stats_map.get(uid, {'nominated': 0, 'approved': 0, 'pending': 0, 'rejected': 0})
         nominated = agg['nominated']
-        min_req   = cycle.peer_min_count or 0
-        status    = 'NOT_STARTED' if nominated == 0 else ('DONE' if nominated >= min_req else 'INCOMPLETE')
+        status = 'NOT_STARTED' if nominated == 0 else ('DONE' if nominated >= min_req else 'INCOMPLETE')
         result.append({
-            'user_id':    str(p.user.id),
+            'user_id':    uid,
             'email':      p.user.email,
             'first_name': p.user.first_name,
             'last_name':  p.user.last_name,
             'department': p.user.department.name if p.user.department_id else None,
             'min_required': min_req,
             'status':     status,
-            **agg,
+            'nominated':  agg['nominated'],
+            'approved':   agg['approved'],
+            'pending':    agg['pending'],
+            'rejected':   agg['rejected'],
         })
     return result
 
@@ -609,17 +624,26 @@ def get_participant_task_status(cycle_id):
 
     participants = CycleParticipant.objects.filter(
         cycle_id=cycle_id
-    ).select_related('user__department').prefetch_related(
-        'user__tasks_as_reviewer'
+    ).select_related('user__department')
+
+    # Single aggregated query for all reviewer task statuses — avoids 4N queries
+    task_stats = (
+        ReviewerTask.objects.filter(cycle_id=cycle_id)
+        .values('reviewer_id')
+        .annotate(
+            total=Count('id'),
+            submitted=Count('id', filter=Q(status='SUBMITTED')),
+            locked=Count('id', filter=Q(status='LOCKED')),
+            pending=Count('id', filter=Q(status__in=['CREATED', 'PENDING', 'IN_PROGRESS'])),
+        )
     )
+    stats_map = {str(s['reviewer_id']): s for s in task_stats}
 
     result = []
     for p in participants:
-        tasks = ReviewerTask.objects.filter(cycle_id=cycle_id, reviewer=p.user)
-        total     = tasks.count()
-        submitted = tasks.filter(status='SUBMITTED').count()
-        locked    = tasks.filter(status='LOCKED').count()
-        pending   = tasks.filter(status__in=['CREATED', 'PENDING', 'IN_PROGRESS']).count()
+        uid = str(p.user.id)
+        s = stats_map.get(uid, {'total': 0, 'submitted': 0, 'locked': 0, 'pending': 0})
+        total, submitted, locked, pending = s['total'], s['submitted'], s['locked'], s['pending']
 
         if total == 0:           overall = 'NO_TASKS'
         elif pending > 0:        overall = 'PENDING'
@@ -629,7 +653,7 @@ def get_participant_task_status(cycle_id):
         else:                    overall = 'MISSED'
 
         result.append({
-            'user_id':    str(p.user.id),
+            'user_id':    uid,
             'first_name': p.user.first_name,
             'last_name':  p.user.last_name,
             'email':      p.user.email,

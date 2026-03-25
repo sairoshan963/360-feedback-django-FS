@@ -102,6 +102,12 @@ class GoogleAuthView(APIView):
             return Response({'success': False, 'error': 'Invalid Google token'}, status=400)
 
         profile = verify_resp.json()
+
+        # Verify the token was issued for our app (prevent token injection from other Google apps)
+        expected_aud = settings.SOCIALACCOUNT_PROVIDERS['google']['APP']['client_id']
+        if profile.get('aud') != expected_aud:
+            return Response({'success': False, 'error': 'Invalid Google token'}, status=400)
+
         result = services.login_with_google(
             google_email=profile.get('email', ''),
             given_name=profile.get('given_name', ''),

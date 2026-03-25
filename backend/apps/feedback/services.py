@@ -162,10 +162,14 @@ def _get_feedback_sections(cycle, reviewee, viewer_role, viewer):
 
         answers = FeedbackAnswer.objects.filter(response=response).select_related('question')
 
-        # Determine identity visibility based on anonymity mode
+        # Determine identity visibility based on anonymity mode:
+        # TRANSPARENT  → everyone sees identity
+        # SEMI_ANONYMOUS → HR_ADMIN/MANAGER/SUPER_ADMIN see identity; employee does not
+        # ANONYMOUS    → only SUPER_ADMIN sees identity (preserves anonymity for all others)
         show_identity = (
             task.anonymity_mode == 'TRANSPARENT'
-            or viewer_role in ['SUPER_ADMIN', 'HR_ADMIN']
+            or viewer_role == 'SUPER_ADMIN'
+            or (task.anonymity_mode == 'SEMI_ANONYMOUS' and viewer_role in ['HR_ADMIN', 'MANAGER'])
             or task.reviewer == viewer
         )
 
