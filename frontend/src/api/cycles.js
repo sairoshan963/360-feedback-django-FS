@@ -33,6 +33,8 @@ export const updateTemplate = (id, data) => {
   return api.put(`/cycles/templates/${id}/`, data);
 };
 
+export const deleteTemplate = (id) => api.delete(`/cycles/templates/${id}/`);
+
 // ─── Cycles ───────────────────────────────────────────────────────────────────
 
 export const getMyCycles = () => {
@@ -69,12 +71,16 @@ export const updateCycle = (id, data) => {
   return api.put(`/cycles/${id}/`, data);
 };
 
+export const deleteCycle = (id) => api.delete(`/cycles/${id}/`);
+
 // ─── Participants ─────────────────────────────────────────────────────────────
 
 export const addParticipants = (id, participant_ids) => {
   if (USE_MOCK) return delay({ success: true });
   return api.post(`/cycles/${id}/participants/`, { participant_ids });
 };
+
+export const removeParticipant = (cycleId, userId) => api.delete(`/cycles/${cycleId}/participants/${userId}/`);
 
 export const getParticipants = (id) => {
   if (USE_MOCK) {

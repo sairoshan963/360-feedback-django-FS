@@ -25,3 +25,7 @@ export const markAllAsRead = () => {
   if (USE_MOCK) return delay({ success: true });
   return api.put('/notifications/mark-all-read/');
 };
+
+export const dismissNotification = (id) => api.delete(`/notifications/${id}/dismiss/`);
+
+export const clearAllNotifications = () => api.delete('/notifications/clear-all/');

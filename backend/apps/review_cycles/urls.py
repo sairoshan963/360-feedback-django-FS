@@ -12,7 +12,8 @@ urlpatterns = [
     path('<uuid:pk>/',           views.CycleDetailView.as_view(),        name='cycle-detail'),
 
     # Participants
-    path('<uuid:pk>/participants/', views.CycleParticipantsView.as_view(), name='cycle-participants'),
+    path('<uuid:pk>/participants/',                  views.CycleParticipantsView.as_view(),   name='cycle-participants'),
+    path('<uuid:pk>/participants/<uuid:user_id>/',   views.RemoveParticipantView.as_view(),   name='cycle-remove-participant'),
 
     # State transitions
     path('<uuid:pk>/activate/',        views.CycleActivateView.as_view(),       name='cycle-activate'),

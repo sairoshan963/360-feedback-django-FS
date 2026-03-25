@@ -44,3 +44,23 @@ class MarkAllReadView(APIView):
     def put(self, request):
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({'success': True})
+
+
+class DismissNotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        try:
+            notif = Notification.objects.get(id=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response({'success': False, 'error': 'Notification not found'}, status=404)
+        notif.delete()
+        return Response({'success': True})
+
+
+class ClearAllNotificationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        Notification.objects.filter(user=request.user).delete()
+        return Response({'success': True})

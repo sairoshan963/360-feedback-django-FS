@@ -5,13 +5,14 @@ import {
   Progress, Statistic, Row, Col, message, Popconfirm, Steps, Modal, Input,
   Form, InputNumber, Tooltip, Select, DatePicker,
 } from 'antd';
-import { EyeOutlined, LockOutlined } from '@ant-design/icons';
+import { EyeOutlined, LockOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
   getCycle, getCycleProgress, getParticipants,
   activateCycle, finalizeCycle, closeCycle, releaseCycle, archiveCycle, overrideCycle,
   getAllNominations, updateCycle, approveNomination, rejectNomination,
   getParticipantStatus, downloadParticipantExcel, getNominationStatus, downloadNominationExcel,
+  removeParticipant,
 } from '../../api/cycles';
 import useAuthStore from '../../store/authStore';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -74,6 +75,16 @@ export default function CycleDetailPage() {
       message.error(err.response?.data?.message || 'Failed to reject');
     } finally {
       setNomActionLoading((p) => ({ ...p, [nom.id]: null }));
+    }
+  };
+
+  const handleRemoveParticipant = async (userId) => {
+    try {
+      await removeParticipant(id, userId);
+      message.success('Participant removed');
+      setParticipants((prev) => prev.filter((p) => p.id !== userId));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to remove participant');
     }
   };
 
@@ -532,11 +543,11 @@ export default function CycleDetailPage() {
                 { title: 'Email', dataIndex: 'email' },
                 { title: 'Dept',  dataIndex: 'department', render: (v) => v || '—' },
                 {
-                  title: 'Report',
-                  width: 130,
-                  render: (_, r) =>
-                    ['RESULTS_RELEASED', 'ARCHIVED'].includes(cycle.state)
-                      ? (
+                  title: 'Actions',
+                  width: 160,
+                  render: (_, r) => (
+                    <Space size="small">
+                      {['RESULTS_RELEASED', 'ARCHIVED'].includes(cycle.state) ? (
                         <Button
                           size="small"
                           type="primary"
@@ -551,7 +562,20 @@ export default function CycleDetailPage() {
                             Pending
                           </Button>
                         </Tooltip>
-                      ),
+                      )}
+                      {['DRAFT', 'NOMINATION'].includes(cycle.state) && (
+                        <Popconfirm
+                          title="Remove this participant?"
+                          description="They will be removed from this cycle."
+                          onConfirm={() => handleRemoveParticipant(r.id)}
+                          okText="Remove"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                      )}
+                    </Space>
+                  ),
                 },
               ]}
             />

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Card, Button, Tag, Space, Typography, Select, message } from 'antd';
-import { PlusOutlined, EyeOutlined } from '@ant-design/icons';
-import { listCycles } from '../../api/cycles';
+import { Table, Card, Button, Tag, Space, Typography, Select, message, Popconfirm } from 'antd';
+import { PlusOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { listCycles, deleteCycle } from '../../api/cycles';
 import usePageTitle from '../../hooks/usePageTitle';
 
 const { Title } = Typography;
@@ -29,6 +29,16 @@ export default function CyclesPage() {
     finally { setLoading(false); }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await deleteCycle(id);
+      message.success('Cycle deleted');
+      setCycles((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete cycle');
+    }
+  };
+
   useEffect(() => { load(); }, [state]);
 
   const columns = [
@@ -44,7 +54,20 @@ export default function CyclesPage() {
     {
       title: 'Actions',
       render: (_, r) => (
-        <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/hr/cycles/${r.id}`)}>View</Button>
+        <Space size="small">
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/hr/cycles/${r.id}`)}>View</Button>
+          {r.state === 'DRAFT' && (
+            <Popconfirm
+              title="Delete this cycle?"
+              description="This will permanently delete the draft cycle and all its data."
+              onConfirm={() => handleDelete(r.id)}
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
+        </Space>
       ),
     },
   ];

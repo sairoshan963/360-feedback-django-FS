@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import useAuthStore from '../../store/authStore';
 import {
   Card, Typography, Space, Button, message, Alert, Upload,
-  Input, Select, Tabs, Tag, Avatar, Table,
+  Input, Select, Tabs, Tag, Avatar, Table, Popconfirm,
 } from 'antd';
-import { UploadOutlined, DownloadOutlined, ApartmentOutlined, UnorderedListOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { UploadOutlined, DownloadOutlined, ApartmentOutlined, UnorderedListOutlined, InfoCircleOutlined, DeleteOutlined, BankOutlined } from '@ant-design/icons';
 import usePageTitle from '../../hooks/usePageTitle';
 import {
   ReactFlow, Background, Controls, MiniMap,
@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from '@dagrejs/dagre';
-import { getOrgHierarchy, importOrg } from '../../api/users';
+import { getOrgHierarchy, importOrg, listDepartments, deleteDepartment } from '../../api/users';
 
 const { Title } = Typography;
 
@@ -95,8 +95,11 @@ export default function OrgPage() {
   const [deptFilter, setDeptFilter] = useState(null);
   const [activeTab,  setActiveTab]  = useState('diagram');
   const [showImport, setShowImport] = useState(false);
+  const [depts,      setDepts]      = useState([]);
+  const [deptsLoading, setDeptsLoading] = useState(false);
   const user = useAuthStore((s) => s.user);
   const isAdmin = ['SUPER_ADMIN', 'HR_ADMIN'].includes(user?.role);
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -110,7 +113,26 @@ export default function OrgPage() {
     finally { setLoading(false); }
   }, []);
 
+  const loadDepts = useCallback(async () => {
+    setDeptsLoading(true);
+    try {
+      const res = await listDepartments();
+      setDepts(res.data.departments || []);
+    } catch { message.error('Failed to load departments'); }
+    finally { setDeptsLoading(false); }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+
+  const handleDeleteDept = async (id, name) => {
+    try {
+      await deleteDepartment(id);
+      message.success(`Department "${name}" deleted`);
+      setDepts((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete department');
+    }
+  };
 
   useEffect(() => {
     if (!org.length) return;
@@ -241,7 +263,7 @@ export default function OrgPage() {
       </Card>
 
       <Card styles={{ body: { padding: 0 } }}>
-        <Tabs activeKey={activeTab} onChange={setActiveTab} style={{ padding: '0 16px' }} items={[
+        <Tabs activeKey={activeTab} onChange={(k) => { setActiveTab(k); if (k === 'departments' && !depts.length) loadDepts(); }} style={{ padding: '0 16px' }} items={[
           {
             key: 'diagram',
             label: <Space><ApartmentOutlined />Diagram</Space>,
@@ -286,6 +308,40 @@ export default function OrgPage() {
               </div>
             ),
           },
+          ...(isSuperAdmin ? [{
+            key: 'departments',
+            label: <Space><BankOutlined />Departments</Space>,
+            children: (
+              <div style={{ padding: '0 0 16px' }}>
+                <Table
+                  rowKey="id"
+                  size="middle"
+                  loading={deptsLoading}
+                  dataSource={depts}
+                  pagination={{ defaultPageSize: 20 }}
+                  columns={[
+                    { title: 'Department Name', dataIndex: 'name', render: (v) => <strong>{v}</strong> },
+                    { title: 'Created', dataIndex: 'created_at', render: (v) => v ? new Date(v).toLocaleDateString() : '—' },
+                    {
+                      title: 'Actions',
+                      width: 100,
+                      render: (_, r) => (
+                        <Popconfirm
+                          title={`Delete "${r.name}"?`}
+                          description="Users in this department will have their department cleared."
+                          onConfirm={() => handleDeleteDept(r.id, r.name)}
+                          okText="Delete"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
+                        </Popconfirm>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+            ),
+          }] : []),
         ]} />
       </Card>
     </Space>

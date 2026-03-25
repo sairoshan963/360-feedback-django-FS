@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Button, Typography, Space, Tag, Collapse, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { listTemplates, getTemplate } from '../../api/cycles';
+import { Card, Table, Button, Typography, Space, Tag, Collapse, message, Popconfirm } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { listTemplates, getTemplate, deleteTemplate } from '../../api/cycles';
 import usePageTitle from '../../hooks/usePageTitle';
 
 const { Title, Text } = Typography;
@@ -24,6 +24,16 @@ export default function TemplatesPage() {
     finally { setLoading(false); }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await deleteTemplate(id);
+      message.success('Template deleted');
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete template');
+    }
+  };
+
   useEffect(() => { load(); }, []);
 
   const loadDetail = async (id) => {
@@ -38,7 +48,23 @@ export default function TemplatesPage() {
     { title: 'Name',     dataIndex: 'name', render: (v) => <Text strong>{v}</Text> },
     { title: 'Sections', dataIndex: 'section_count', render: (v) => <Tag>{v ?? '—'} sections</Tag> },
     { title: 'Created',  dataIndex: 'created_at', render: (v) => new Date(v).toLocaleDateString() },
-    { title: 'Actions',  render: (_, r) => <Button size="small" onClick={() => navigate(`/hr/templates/${r.id}/edit`)}>Edit</Button> },
+    {
+      title: 'Actions',
+      render: (_, r) => (
+        <Space size="small">
+          <Button size="small" onClick={() => navigate(`/hr/templates/${r.id}/edit`)}>Edit</Button>
+          <Popconfirm
+            title="Delete this template?"
+            description="This will fail if the template is used by any cycle."
+            onConfirm={() => handleDelete(r.id)}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ];
 
   const expandedRowRender = (record) => {

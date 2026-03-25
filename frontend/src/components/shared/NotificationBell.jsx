@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Badge, Dropdown, List, Typography, Button, Empty, Spin, Divider } from 'antd';
-import { NotificationOutlined } from '@ant-design/icons';
+import { Badge, Dropdown, List, Typography, Button, Empty, Spin, Divider, Popconfirm } from 'antd';
+import { NotificationOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../../api/notifications';
+import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, dismissNotification, clearAllNotifications } from '../../api/notifications';
 
 const { Text } = Typography;
 
@@ -57,10 +57,25 @@ export default function NotificationBell() {
 
   const handleMarkAllRead = async (e) => {
     e.stopPropagation();
-    // Optimistically clear all locally
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
     try { await markAllAsRead(); } catch { /* silent */ }
+  };
+
+  const handleDismiss = async (e, id) => {
+    e.stopPropagation();
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setUnreadCount((c) => {
+      const notif = notifications.find((n) => n.id === id);
+      return notif && !notif.is_read ? Math.max(0, c - 1) : c;
+    });
+    try { await dismissNotification(id); } catch { /* silent */ }
+  };
+
+  const handleClearAll = async () => {
+    setNotifications([]);
+    setUnreadCount(0);
+    try { await clearAllNotifications(); } catch { /* silent */ }
   };
 
   const dropdownContent = (
@@ -81,11 +96,25 @@ export default function NotificationBell() {
         padding: '12px 16px', borderBottom: '1px solid #f0f0f0',
       }}>
         <Text strong style={{ fontSize: 14 }}>Notifications</Text>
-        {unreadCount > 0 && (
-          <Button size="small" type="link" style={{ padding: 0 }} onClick={handleMarkAllRead}>
-            Mark all read
-          </Button>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {unreadCount > 0 && (
+            <Button size="small" type="link" style={{ padding: 0 }} onClick={handleMarkAllRead}>
+              Mark all read
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Popconfirm
+              title="Clear all notifications?"
+              onConfirm={handleClearAll}
+              okText="Clear"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" type="link" danger style={{ padding: 0 }}>
+                Clear all
+              </Button>
+            </Popconfirm>
+          )}
+        </div>
       </div>
 
       {/* Body */}
@@ -118,7 +147,16 @@ export default function NotificationBell() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text strong={!item.is_read} style={{ fontSize: 13 }}>{item.title}</Text>
-                  {!item.is_read && <Badge status="processing" />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {!item.is_read && <Badge status="processing" />}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CloseOutlined style={{ fontSize: 10, color: '#999' }} />}
+                      style={{ padding: '0 2px', height: 16, minWidth: 16 }}
+                      onClick={(e) => handleDismiss(e, item.id)}
+                    />
+                  </div>
                 </div>
                 <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 2 }}>
                   {item.message}

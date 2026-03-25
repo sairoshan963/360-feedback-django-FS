@@ -48,6 +48,18 @@ class TemplateDetailView(APIView):
         template = services.update_template(pk, name, sections, request.user)
         return Response({'success': True, 'template': TemplateSerializer(template).data})
 
+    def delete(self, request, pk):
+        from rest_framework.exceptions import ValidationError
+        from apps.review_cycles.models import ReviewCycle
+        template = services.get_template(pk)
+        if ReviewCycle.objects.filter(template=template).exists():
+            raise ValidationError('Cannot delete a template that is used by one or more cycles.')
+        from apps.audit.models import AuditLog
+        AuditLog.log(actor=request.user, action='DELETE_TEMPLATE', entity_type='template',
+                     entity_id=pk, new_value={'name': template.name})
+        template.delete()
+        return Response({'success': True, 'message': 'Template deleted'})
+
 
 # ─── Cycles ───────────────────────────────────────────────────────────────────
 
@@ -92,6 +104,17 @@ class CycleDetailView(APIView):
         cycle = services.update_cycle(pk, request.data, request.user)
         return Response({'success': True, 'cycle': ReviewCycleSerializer(cycle).data})
 
+    def delete(self, request, pk):
+        from rest_framework.exceptions import ValidationError
+        cycle = services.get_cycle(pk)
+        if cycle.state != 'DRAFT':
+            raise ValidationError('Only DRAFT cycles can be deleted.')
+        from apps.audit.models import AuditLog
+        AuditLog.log(actor=request.user, action='DELETE_CYCLE', entity_type='review_cycle',
+                     entity_id=pk, new_value={'name': cycle.name})
+        cycle.delete()
+        return Response({'success': True, 'message': 'Cycle deleted'})
+
 
 # ─── Participants ─────────────────────────────────────────────────────────────
 
@@ -113,6 +136,24 @@ class CycleParticipantsView(APIView):
             pk, serializer.validated_data['participant_ids'], request.user
         )
         return Response({'success': True, 'participants': CycleParticipantSerializer(participants, many=True).data})
+
+
+class RemoveParticipantView(APIView):
+    """HR Admin: remove a participant from a cycle (DRAFT/NOMINATION only)."""
+    permission_classes = [IsAuthenticated, IsHRAdmin]
+
+    def delete(self, request, pk, user_id):
+        from rest_framework.exceptions import ValidationError, NotFound
+        from apps.review_cycles.models import CycleParticipant
+        cycle = services.get_cycle(pk)
+        if cycle.state not in ['DRAFT', 'NOMINATION']:
+            raise ValidationError('Participants can only be removed in DRAFT or NOMINATION state.')
+        try:
+            participant = CycleParticipant.objects.get(cycle=cycle, user_id=user_id)
+        except CycleParticipant.DoesNotExist:
+            raise NotFound('Participant not found in this cycle.')
+        participant.delete()
+        return Response({'success': True, 'message': 'Participant removed'})
 
 
 # ─── State Transitions ────────────────────────────────────────────────────────

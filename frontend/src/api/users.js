@@ -44,6 +44,8 @@ export const createDepartment = (data) => {
   return api.post('/users/departments/', data);
 };
 
+export const deleteDepartment = (id) => api.delete(`/users/departments/${id}/`);
+
 export const getOrgHierarchy = () => {
   if (USE_MOCK) return delay({ success: true, hierarchy: ORG_HIERARCHY });
   return api.get('/users/org/hierarchy/');
