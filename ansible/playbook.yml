@@ -64,11 +64,18 @@
       debug:
         var: compose_output.stdout_lines
 
-    - name: Wait for backend to be healthy
+    - name: Wait for DB to be healthy
       shell: docker inspect --format='{{ "{{.State.Health.Status}}" }}' 360-django-db-1
       register: db_health
       until: db_health.stdout == "healthy"
       retries: 10
+      delay: 5
+
+    - name: Wait for backend to be running
+      shell: docker inspect --format='{{ "{{.State.Status}}" }}' 360-django-backend-1
+      register: backend_status
+      until: backend_status.stdout == "running"
+      retries: 15
       delay: 5
 
     - name: Seed users and templates (ensures Simple 360° Review template exists)
