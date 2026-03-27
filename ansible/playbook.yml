@@ -85,13 +85,13 @@
 
     - name: Verify frontend is responding
       uri:
-        url: "http://localhost:5173/"
+        url: "http://localhost:5175/"
         status_code: 200
       register: frontend_check
 
     - name: Verify backend API is responding
       uri:
-        url: "http://localhost:8000/api/v1/auth/login/"
+        url: "http://localhost:8002/api/v1/auth/login/"
         method: POST
         body_format: json
         body:
@@ -104,5 +104,5 @@
       debug:
         msg:
           - "✅ Deploy successful!"
-          - "Frontend: http://164.52.215.113:5173/"
-          - "Backend:  http://164.52.215.113:8000/"
+          - "Frontend: http://164.52.215.113:5175/"
+          - "Backend:  http://164.52.215.113:8002/"
