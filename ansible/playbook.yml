@@ -51,10 +51,13 @@
       failed_when: not env_file.stat.exists
       ignore_errors: no
 
+    - name: Remove stale COMPOSE_PROJECT_NAME from server env
+      shell: rm -f {{ app_path }}/.env
+
     - name: Build and restart containers
       shell: |
         cd {{ app_path }}
-        VITE_GOOGLE_CLIENT_ID={{ google_client_id }} docker compose up -d --build
+        VITE_GOOGLE_CLIENT_ID={{ google_client_id }} docker compose -p 360-django up -d --build
       register: compose_output
 
     - name: Show compose output
@@ -71,7 +74,7 @@
     - name: Seed users and templates (ensures Simple 360° Review template exists)
       shell: |
         cd {{ app_path }}
-        docker compose exec -T backend python manage.py seed_users
+        docker compose -p 360-django exec -T backend python manage.py seed_users
       register: seed_result
       changed_when: false
 
