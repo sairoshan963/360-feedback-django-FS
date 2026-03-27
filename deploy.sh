@@ -39,4 +39,4 @@ fi
 
 echo ""
 echo "✅ Deploy complete!"
-echo "   App: http://164.52.215.113:5175/"
+echo "   App: http://164.52.215.113:3000/"

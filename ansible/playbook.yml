@@ -85,7 +85,7 @@
 
     - name: Verify frontend is responding
       uri:
-        url: "http://localhost:5175/"
+        url: "http://localhost:3000/"
         status_code: 200
       register: frontend_check
 
@@ -104,5 +104,5 @@
       debug:
         msg:
           - "✅ Deploy successful!"
-          - "Frontend: http://164.52.215.113:5175/"
+          - "Frontend: http://164.52.215.113:3000/"
           - "Backend:  http://164.52.215.113:8002/"
