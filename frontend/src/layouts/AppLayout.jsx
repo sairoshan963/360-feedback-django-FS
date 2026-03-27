@@ -6,7 +6,7 @@ import {
   FileTextOutlined, SyncOutlined, CheckSquareOutlined,
   TrophyOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
   DashboardOutlined, SafetyOutlined, UsergroupAddOutlined, ProfileOutlined,
-  WarningOutlined, NotificationOutlined,
+  WarningOutlined, NotificationOutlined, StarOutlined,
 } from '@ant-design/icons';
 import useAuthStore from '../store/authStore';
 import { logout } from '../api/auth';
@@ -41,7 +41,9 @@ function navItems(role) {
       { key: '/hr/templates',     icon: <FileTextOutlined />,     label: 'Templates' },
       { key: '/hr/dashboard',     icon: <BarChartOutlined />,     label: 'HR Dashboard' },
       { key: '/hr/reports',       icon: <TrophyOutlined />,       label: 'View Reports' },
-      { key: '/hr/announcements', icon: <NotificationOutlined />, label: 'Announcements' },
+      { key: '/hr/announcements',              icon: <NotificationOutlined />, label: 'Announcements' },
+      { key: '/hr/client-feedback-templates', icon: <FileTextOutlined />,     label: 'Client FB Templates' },
+      { key: '/hr/client-feedback',           icon: <StarOutlined />,         label: 'Client Feedback' },
     );
   }
 

@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/audit/',         include('apps.audit.urls')),
     path('api/v1/announcements/', include('apps.announcements.urls')),
-    path('api/v1/support/',       include('apps.support.urls')),
+    path('api/v1/support/',          include('apps.support.urls')),
+    path('api/v1/client-feedback/',  include('apps.client_feedback.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

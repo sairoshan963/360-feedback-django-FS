@@ -34,6 +34,13 @@ import NominationsPage   from '../pages/employee/NominationsPage';
 import MyReportPage      from '../pages/employee/MyReportPage';
 
 import ProfilePage from '../pages/shared/ProfilePage';
+import ClientFeedbackPage                    from '../pages/hr/ClientFeedbackPage';
+import ClientFeedbackDetailPage             from '../pages/hr/ClientFeedbackDetailPage';
+import ClientFeedbackTemplatesPage          from '../pages/hr/ClientFeedbackTemplatesPage';
+import CreateClientFeedbackTemplatePage     from '../pages/hr/CreateClientFeedbackTemplatePage';
+import EditClientFeedbackTemplatePage       from '../pages/hr/EditClientFeedbackTemplatePage';
+import ClientFeedbackFormPage               from '../pages/public/ClientFeedbackFormPage';
+import ClientFeedbackDemoPage              from '../pages/public/ClientFeedbackDemoPage';
 
 function RootRedirect() {
   const user = useAuthStore((s) => s.user);
@@ -51,6 +58,8 @@ export default function AppRouter() {
         <Route path="/auth/callback"    element={<AuthCallbackPage />} />
         <Route path="/reset-password"   element={<ResetPasswordPage />} />
         <Route path="/unauthorized"     element={<UnauthorizedPage />} />
+        <Route path="/client-feedback/:token" element={<ClientFeedbackFormPage />} />
+        <Route path="/client-feedback-demo"   element={<ClientFeedbackDemoPage />} />
         <Route path="/"               element={<RootRedirect />} />
 
         {/* Protected */}
@@ -83,6 +92,16 @@ export default function AppRouter() {
             element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><ViewReportsPage /></RequireRole>} />
           <Route path="/hr/announcements"
             element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><AnnouncementsPage /></RequireRole>} />
+          <Route path="/hr/client-feedback-templates"
+            element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><ClientFeedbackTemplatesPage /></RequireRole>} />
+          <Route path="/hr/client-feedback-templates/new"
+            element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><CreateClientFeedbackTemplatePage /></RequireRole>} />
+          <Route path="/hr/client-feedback-templates/:id/edit"
+            element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><EditClientFeedbackTemplatePage /></RequireRole>} />
+          <Route path="/hr/client-feedback"
+            element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><ClientFeedbackPage /></RequireRole>} />
+          <Route path="/hr/client-feedback/:id"
+            element={<RequireRole roles={['HR_ADMIN','SUPER_ADMIN']}><ClientFeedbackDetailPage /></RequireRole>} />
 
           {/* Manager */}
           <Route path="/manager/dashboard"

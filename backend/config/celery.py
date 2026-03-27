@@ -21,4 +21,9 @@ app.conf.beat_schedule = {
         'task': 'apps.review_cycles.tasks.send_reminders',
         'schedule': crontab(minute=0),
     },
+    # Remind clients with PENDING feedback requests expiring within 2 days (daily at 9am)
+    'client-feedback-reminders': {
+        'task': 'apps.client_feedback.tasks.send_client_feedback_reminders',
+        'schedule': crontab(hour=9, minute=0),
+    },
 }
